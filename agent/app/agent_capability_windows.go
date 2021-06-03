@@ -16,17 +16,15 @@
 package app
 
 import (
-	"os"
 	"path/filepath"
 
+	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/aws/amazon-ecs-agent/agent/ecs_client/model/ecs"
 	"github.com/aws/amazon-ecs-agent/agent/taskresource/volume"
 )
 
 var (
-	EnvProgramFiles                = os.Getenv("ProgramFiles")
-	AmazonProgramFiles             = filepath.Join(EnvProgramFiles, "Amazon")
-	capabilityDepsRootDir          = filepath.Join(AmazonProgramFiles, "managed-agents")
+	capabilityDepsRootDir          = filepath.Join(config.AmazonProgramFiles, "managed-agents")
 	capabilityExecRequiredBinaries = []string{
 		"amazon-ssm-agent.exe",
 		"ssm-agent-worker.exe",

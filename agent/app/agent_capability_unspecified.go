@@ -27,15 +27,11 @@ import (
 )
 
 const (
-	capabilityDepsRootDir = "/managed-agents"
+	capabilityDepsRootDir = ""
 )
 
 var (
-	capabilityExecRequiredBinaries = []string{
-		"amazon-ssm-agent",
-		"ssm-agent-worker",
-		"ssm-session-worker",
-	}
+	capabilityExecRequiredBinaries = []string{}
 )
 
 func (agent *ecsAgent) appendVolumeDriverCapabilities(capabilities []*ecs.Attribute) []*ecs.Attribute {

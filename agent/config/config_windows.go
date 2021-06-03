@@ -65,6 +65,11 @@ const (
 	adminSid = "S-1-5-32-544"
 )
 
+var (
+	envProgramFiles    = utils.DefaultIfBlank(os.Getenv("ProgramFiles"), `C:\Program Files`)
+	AmazonProgramFiles = filepath.Join(envProgramFiles, "Amazon")
+)
+
 // DefaultConfig returns the default configuration for Windows
 func DefaultConfig() Config {
 	programData := utils.DefaultIfBlank(os.Getenv("ProgramData"), `C:\ProgramData`)
