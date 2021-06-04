@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	capabilityDepsRootDir          = filepath.Join(config.AmazonProgramFiles, "managed-agents")
+	capabilityDepsRootDir          = filepath.Join(config.AmazonECSProgramFiles, "managed-agents")
 	capabilityExecRequiredBinaries = []string{
 		"amazon-ssm-agent.exe",
 		"ssm-agent-worker.exe",
