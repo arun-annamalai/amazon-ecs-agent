@@ -226,6 +226,9 @@ func (m *manager) getLatestVersionedHostBinDir() (string, error) {
 	if latest == "" {
 		return "", fmt.Errorf("no valid versions were found in %s", m.hostBinDir)
 	}
+
+	// TODO: remove this
+	seelog.Error("windows init container has finished running")
 	return latest, nil
 }
 
