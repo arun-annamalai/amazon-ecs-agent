@@ -26,12 +26,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pborman/uuid"
-
 	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
 	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
+	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/cihub/seelog"
 	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/pborman/uuid"
 )
 
 const (
@@ -43,21 +43,21 @@ const (
 var (
 	namelessContainerPrefix = "nameless-container-"
 
-	ecsAgentExecDepsDir = AmazonProgramFiles + "\\managed-agents\\execute-command"
+	ecsAgentExecDepsDir = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command"
 
 	// ecsAgentDepsBinDir is the directory where ECS Agent will read versions of SSM agent
 	ecsAgentDepsBinDir   = ecsAgentExecDepsDir + "\\bin"
 	ecsAgentDepsCertsDir = ecsAgentExecDepsDir + "\\certs"
 
-	ContainerDepsDirPrefix = AmazonProgramFiles + "\\ecs-execute-command-"
+	ContainerDepsDirPrefix = config.AmazonECSProgramFiles + "\\ecs-execute-command-"
 
 	SSMAgentBinName       = "amazon-ssm-agent.exe"
 	SSMAgentWorkerBinName = "ssm-agent-worker.exe"
 	SessionWorkerBinName  = "ssm-session-worker.exe"
 
-	HostLogDir         = AmazonProgramData + "\\ecs\\exec"
-	ContainerLogDir    = AmazonProgramData + "\\ssm"
-	ECSAgentExecLogDir = AmazonProgramData + "\\exec"
+	HostLogDir         = config.AmazonECSProgramFiles + "\\ecs\\exec"
+	ContainerLogDir    = config.AmazonECSProgramFiles + "\\ssm"
+	ECSAgentExecLogDir = config.AmazonECSProgramFiles + "\\exec"
 
 	HostCertFile            = hostExecDepsDir + "\\certs\\tls-ca-bundle.pem"
 	ContainerCertFileSuffix = "certs\\amazon-ssm-agent.crt"

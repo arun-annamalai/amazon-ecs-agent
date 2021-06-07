@@ -16,18 +16,18 @@ package execcmd
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/aws/amazon-ecs-agent/agent/config"
 )
 
 var (
 	// EnvProgramFiles Windows environment variable (C:\Program Files)
-	EnvProgramFiles       = os.Getenv("ProgramFiles")
-	AmazonProgramFiles    = filepath.Join(EnvProgramFiles, "Amazon")
-	capabilityDepsRootDir = filepath.Join(AmazonProgramFiles, "managed-agents")
+	capabilityDepsRootDir = filepath.Join(config.AmazonECSProgramFiles, "managed-agents")
 
 	// EnvProgramData Windows environment variable (C:\ProgramData)
 	EnvProgramData    = os.Getenv("ProgramData")
 	AmazonProgramData = filepath.Join(EnvProgramData, "Amazon")
 
-	hostExecDepsDir = filepath.Join(AmazonProgramFiles, "ecs\\deps\\execute-command")
-	HostBinDir      = filepath.Join(AmazonProgramFiles, "bin")
+	hostExecDepsDir = filepath.Join(config.AmazonECSProgramFiles, "ecs\\deps\\execute-command")
+	HostBinDir      = filepath.Join(config.AmazonECSProgramFiles, "bin")
 )
