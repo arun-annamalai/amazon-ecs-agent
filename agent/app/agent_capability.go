@@ -457,7 +457,8 @@ func dependenciesExist(dependencies map[string][]string) (bool, error) {
 		if exists, err := pathExists(directory, true); err != nil || !exists {
 			return false, err
 		}
-
+		// TODO: remove this
+		seelog.Error("exists: ", directory)
 		for _, filename := range files {
 			path := filepath.Join(directory, filename)
 			if exists, err := pathExists(path, false); err != nil || !exists {
