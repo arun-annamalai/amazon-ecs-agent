@@ -454,7 +454,10 @@ func defaultGetSubDirectories(path string) ([]string, error) {
 
 func dependenciesExist(dependencies map[string][]string) (bool, error) {
 	for directory, files := range dependencies {
+
 		if exists, err := pathExists(directory, true); err != nil || !exists {
+			// TODO: remove this
+			seelog.Error("does not exists: ", directory)
 			return false, err
 		}
 		// TODO: remove this
