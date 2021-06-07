@@ -499,6 +499,8 @@ func checkAnyValidDependency(dependencies map[string][]string) (bool, error) {
 
 func defaultPathExists(path string, shouldBeDirectory bool) (bool, error) {
 	fileInfo, err := os.Stat(path)
+	// TODO: remove this
+	seelog.Error("func: ", fileInfo)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
