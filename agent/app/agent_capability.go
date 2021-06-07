@@ -377,7 +377,8 @@ func (agent *ecsAgent) appendTaskENICapabilities(capabilities []*ecs.Attribute) 
 func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]*ecs.Attribute, error) {
 	// for an instance to be exec-enabled, it needs resources needed by SSM (binaries, configuration files and certs)
 	// the following bind mounts are defined in ecs-init and added to the ecs-agent container
-
+	// TODO: remove this
+	seelog.Error("windows agent cap has run")
 	capabilityExecRootDir := filepath.Join(capabilityDepsRootDir, capabilityExec)
 	binDir := filepath.Join(capabilityExecRootDir, capabilityExecBinRelativePath)
 	configDir := filepath.Join(capabilityExecRootDir, capabilityExecConfigRelativePath)
@@ -415,6 +416,8 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 		versionSubDirectory := filepath.Join(binDir, binFolder)
 		binDependencies[versionSubDirectory] = capabilityExecRequiredBinaries
 	}
+	// TODO: remove this
+	seelog.Error("here")
 	if len(binDependencies) < 1 {
 		return capabilities, nil
 	}
