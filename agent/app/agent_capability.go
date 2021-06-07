@@ -384,6 +384,10 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 	configDir := filepath.Join(capabilityExecRootDir, capabilityExecConfigRelativePath)
 	certsDir := filepath.Join(capabilityExecRootDir, capabilityExecCertsRelativePath)
 
+	// TODO: remove this
+	seelog.Error("%s", binDir)
+	seelog.Error("%s", configDir)
+	seelog.Error("%s", certsDir)
 	// top-level folders, /bin, /config, /certs
 	dependencies := map[string][]string{
 		binDir:    []string{},
