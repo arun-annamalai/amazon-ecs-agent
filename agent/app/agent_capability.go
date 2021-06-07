@@ -393,7 +393,8 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 	if exists, err := dependenciesExist(dependencies); err != nil || !exists {
 		return capabilities, err
 	}
-
+	// TODO: remove this
+	seelog.Error("here0.1")
 	// ssm binaries are stored in /bin/<version>/, 1 version is downloaded by ami builder for ECS instances
 	binDependencies := map[string][]string{}
 	// child folders named by version inside binDir, e.g. 3.0.236.0
@@ -401,6 +402,10 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 	if err != nil {
 		return capabilities, err
 	}
+
+	// TODO: remove this
+	seelog.Error("here0.2")
+
 	// use raw string for regular expression to avoid escaping backslash (\)
 	var validSsmVersion = regexp.MustCompile(`^\d+(\.\d+)*$`)
 	for _, binFolder := range binFolders {
