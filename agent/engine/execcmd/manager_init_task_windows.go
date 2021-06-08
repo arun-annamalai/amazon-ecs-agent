@@ -49,17 +49,17 @@ var (
 	ecsAgentDepsBinDir   = ecsAgentExecDepsDir + "\\bin"
 	ecsAgentDepsCertsDir = ecsAgentExecDepsDir + "\\certs"
 
-	ContainerDepsDirPrefix = config.AmazonECSProgramFiles + "\\ecs-execute-command-"
+	ContainerDepsDirPrefix = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command"
 
 	SSMAgentBinName       = "amazon-ssm-agent.exe"
 	SSMAgentWorkerBinName = "ssm-agent-worker.exe"
 	SessionWorkerBinName  = "ssm-session-worker.exe"
 
-	HostLogDir         = config.AmazonECSProgramFiles + "\\ecs\\exec"
-	ContainerLogDir    = config.AmazonECSProgramFiles + "\\ssm"
-	ECSAgentExecLogDir = config.AmazonECSProgramFiles + "\\exec"
+	HostLogDir         = config.AmazonECSProgramData + "\\exec"
+	ContainerLogDir    = config.AmazonECSProgramData + "\\ssm"
+	ECSAgentExecLogDir = config.AmazonECSProgramData + "\\exec"
 
-	HostCertFile            = hostExecDepsDir + "\\certs\\tls-ca-bundle.pem"
+	HostCertFile            = ecsAgentDepsCertsDir + "\\tls-ca-bundle.pem"
 	ContainerCertFileSuffix = "certs\\amazon-ssm-agent.crt"
 
 	containerConfigFileName   = "amazon-ssm-agent.json"

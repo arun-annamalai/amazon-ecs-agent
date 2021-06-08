@@ -22,6 +22,6 @@ import (
 )
 
 var (
-	hostExecDepsDir = filepath.Join(config.AmazonECSProgramFiles, "ecs\\deps\\execute-command")
-	HostBinDir      = filepath.Join(config.AmazonECSProgramFiles, "bin")
+	hostExecDepsDir = filepath.Join(config.AmazonECSProgramFiles, "managed-agents", "execute-command")
+	HostBinDir      = filepath.Join(hostExecDepsDir, "bin")
 )
