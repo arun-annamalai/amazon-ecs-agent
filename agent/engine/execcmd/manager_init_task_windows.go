@@ -19,6 +19,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -49,14 +50,15 @@ var (
 	ecsAgentDepsBinDir   = ecsAgentExecDepsDir + "\\bin"
 	ecsAgentDepsCertsDir = ecsAgentExecDepsDir + "\\certs"
 
-	ContainerDepsDirPrefix = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command"
+	HostDepsDirPrefix      = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command\\container-dependencies-"
+	ContainerDepsDirPrefix = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command-"
 
 	SSMAgentBinName       = "amazon-ssm-agent.exe"
 	SSMAgentWorkerBinName = "ssm-agent-worker.exe"
 	SessionWorkerBinName  = "ssm-session-worker.exe"
 
 	HostLogDir         = config.AmazonECSProgramData + "\\exec"
-	ContainerLogDir    = config.AmazonECSProgramData + "\\ssm"
+	ContainerLogDir    = config.AmazonProgramData + "\\SSM"
 	ECSAgentExecLogDir = config.AmazonECSProgramData + "\\exec"
 
 	HostCertFile            = ecsAgentDepsCertsDir + "\\tls-ca-bundle.pem"
@@ -158,21 +160,29 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		return rErr
 	}
 
-	// Note in Windows, file bind mounts are not supported so entire folder is mounted
-	// Add ssm binary mounts
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		latestBinVersionDir,
-		containerDepsFolder))
+	// Note in Windows, file bind mounts are not supported so the binaries and configs are copied
+	// to a dir and entire dir is mounted
+	rErr = createTaskDepsDir(taskId)
 
-	// Add exec agent config file mount and log config file mount
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		HostExecConfigDir,
-		containerDepsFolder))
+	if rErr != nil {
+		rErr = fmt.Errorf("could not create task dependency directory")
+		return rErr
+	}
+	// Need to copy files over to container deps Folder
+	HostDepsDir := filepath.Join(HostDepsDirPrefix, taskId)
+	// Copy ssm binary files
+	copyDirFiles(latestBinVersionDir, HostDepsDir)
+
+	// Copy exec agent config files
+	copyDirFiles(HostExecConfigDir, HostDepsDir)
 
 	// Append TLS cert mount
+	// TODO: confirm that certs are not needed for Windows
+
+	// bind mount shared dependency folder containing bin and configs
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		ecsAgentDepsCertsDir,
-		filepath.Join(containerDepsFolder, "certs")))
+		HostDepsDir,
+		containerDepsFolder))
 
 	// Add ssm log bind mount
 	cn := fileSystemSafeContainerName(container)
@@ -354,4 +364,38 @@ func createNewConfigFile(config, configFilePath string) error {
 
 func certsExist() bool {
 	return fileExists(filepath.Join(ecsAgentDepsCertsDir, "tls-ca-bundle.pem"))
+}
+
+func copyDirFiles(srcDir string, destDir string) error {
+	files, err := ioUtilReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		new, err := os.Create(filepath.Join(destDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		original, err := os.Open(filepath.Join(srcDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(new, original)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createTaskDepsDir(taskId string) error {
+	err := os.Mkdir(filepath.Join(ecsAgentExecDepsDir, taskId), 0755)
+	if err != nil {
+		return err
+	}
+	return nil
 }

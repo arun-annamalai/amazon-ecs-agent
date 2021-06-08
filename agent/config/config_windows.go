@@ -69,8 +69,10 @@ var (
 	envProgramFiles = utils.DefaultIfBlank(os.Getenv("ProgramFiles"), `C:\Program Files`)
 	envProgramData  = utils.DefaultIfBlank(os.Getenv("ProgramData"), `C:\ProgramData`)
 
+	AmazonProgramData = filepath.Join(envProgramData, "Amazon")
+
 	AmazonECSProgramFiles = filepath.Join(envProgramFiles, "Amazon", "ECS")
-	AmazonECSProgramData  = filepath.Join(envProgramData, "Amazon", "ECS")
+	AmazonECSProgramData  = filepath.Join(AmazonProgramData, "ECS")
 )
 
 // DefaultConfig returns the default configuration for Windows
