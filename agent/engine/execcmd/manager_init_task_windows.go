@@ -134,12 +134,12 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 	if !ok {
 		return errExecCommandManagedAgentNotFound
 	}
-	configFile, rErr := GetExecAgentConfigFileName(getSessionWorkersLimit(ma))
+	_, rErr = GetExecAgentConfigFileName(getSessionWorkersLimit(ma))
 	if rErr != nil {
 		rErr = fmt.Errorf("could not generate ExecAgent Config File: %v", rErr)
 		return rErr
 	}
-	logConfigFile, rErr := GetExecAgentLogConfigFile()
+	_, rErr = GetExecAgentLogConfigFile()
 	if rErr != nil {
 		rErr = fmt.Errorf("could not generate ExecAgent LogConfig file: %v", rErr)
 		return rErr
@@ -158,33 +158,21 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		return rErr
 	}
 
+	// Note in Windows, file bind mounts are not supported so entire folder is mounted
 	// Add ssm binary mounts
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(latestBinVersionDir, SSMAgentBinName),
-		filepath.Join(containerDepsFolder, SSMAgentBinName)))
+		latestBinVersionDir,
+		containerDepsFolder))
 
+	// Add exec agent config file mount and log config file mount
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(latestBinVersionDir, SSMAgentWorkerBinName),
-		filepath.Join(containerDepsFolder, SSMAgentWorkerBinName)))
-
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(latestBinVersionDir, SessionWorkerBinName),
-		filepath.Join(containerDepsFolder, SessionWorkerBinName)))
-
-	// Add exec agent config file mount
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(HostExecConfigDir, configFile),
-		filepath.Join(containerDepsFolder, ContainerConfigFileSuffix)))
-
-	// Add exec agent log config file mount
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(HostExecConfigDir, logConfigFile),
-		filepath.Join(containerDepsFolder, ContainerLogConfigFile)))
+		HostExecConfigDir,
+		containerDepsFolder))
 
 	// Append TLS cert mount
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		HostCertFile,
-		filepath.Join(containerDepsFolder, ContainerCertFileSuffix)))
+		ecsAgentDepsCertsDir,
+		filepath.Join(containerDepsFolder, "certs")))
 
 	// Add ssm log bind mount
 	cn := fileSystemSafeContainerName(container)
