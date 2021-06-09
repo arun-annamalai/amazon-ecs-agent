@@ -102,9 +102,9 @@ var (
     </exceptions>
     <outputs formatid="fmtinfo">
         <console formatid="fmtinfo"/>
-        <rollingfile type="size" filename="{{LOCALAPPDATA}}\Amazon\SSM\Logs\amazon-ssm-agent.log" maxsize="30000000" maxrolls="5"/>
+        <rollingfile type="size" filename="C:\ProgramData\Amazon\SSM\Logs\amazon-ssm-agent.log" maxsize="30000000" maxrolls="5"/>
         <filter levels="error,critical" formatid="fmterror">
-            <rollingfile type="size" filename="{{LOCALAPPDATA}}\Amazon\SSM\Logs\errors.log" maxsize="10000000" maxrolls="5"/>
+            <rollingfile type="size" filename="C:\ProgramData\Amazon\SSM\Logs\errors.log" maxsize="10000000" maxrolls="5"/>
         </filter>
     </outputs>
     <formats>

@@ -155,6 +155,7 @@ func (m *manager) doStartAgent(ctx context.Context, client dockerapi.DockerClien
 		User:   "0",
 		Detach: true,
 		Cmd:    []string{execAgentCmd},
+		// amazon/ecs/program.exe
 	}
 	newMD := &AgentMetadata{}
 	execRes, err := client.CreateContainerExec(ctx, containerId, execCfg, dockerclient.ContainerExecCreateTimeout)
