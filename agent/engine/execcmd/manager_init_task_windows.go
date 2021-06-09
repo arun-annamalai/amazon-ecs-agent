@@ -186,14 +186,15 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		HostDepsDirPrefix+taskId,
 		containerDepsFolder))
 
-	// In windows mounts are not created automatically, so need a check
+	// Add ssm log bind mount
+	cn := fileSystemSafeContainerName(container)
+
+	// In windows mounts are not created automatically, so need create
 	err := os.MkdirAll(filepath.Join(HostLogDir, taskId, cn), 0755)
 	if err != nil {
 		return err
 	}
 
-	// Add ssm log bind mount
-	cn := fileSystemSafeContainerName(container)
 	hostConfig.Binds = append(hostConfig.Binds, getBindMountMapping(
 		filepath.Join(HostLogDir, taskId, cn),
 		ContainerLogDir))
