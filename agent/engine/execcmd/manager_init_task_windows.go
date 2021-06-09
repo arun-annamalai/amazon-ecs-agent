@@ -288,6 +288,8 @@ func getAgentLogConfigFile() (string, error) {
 	logConfigFileName := fmt.Sprintf(logConfigFileNameTemplate, hash)
 	// check if config file exists already
 	logConfigFilePath := filepath.Join(ECSAgentExecConfigDir, logConfigFileName)
+	//todo: remove this or solve elsewhere
+	logConfigFilePath = filepath.Join(ECSAgentExecConfigDir, "seelog.xml")
 	if fileExists(logConfigFilePath) && validConfigExists(logConfigFilePath, hash) {
 		return logConfigFileName, nil
 	}
@@ -329,6 +331,8 @@ func getAgentConfigFileName(sessionLimit int) (string, error) {
 	configFileName := fmt.Sprintf(execAgentConfigFileNameTemplate, hash)
 	// check if config file exists already
 	configFilePath := filepath.Join(ECSAgentExecConfigDir, configFileName)
+	//todo: remove this, or find a solution later
+	configFilePath = filepath.Join(ECSAgentExecConfigDir, "amazon-ssm-agent.json")
 	if fileExists(configFilePath) && validConfigExists(configFilePath, hash) {
 		return configFileName, nil
 	}
