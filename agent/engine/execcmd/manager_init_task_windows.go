@@ -186,6 +186,12 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		HostDepsDirPrefix+taskId,
 		containerDepsFolder))
 
+	// In windows mounts are not created automatically, so need a check
+	err := os.MkdirAll(filepath.Join(HostLogDir, taskId, cn), 0755)
+	if err != nil {
+		return err
+	}
+
 	// Add ssm log bind mount
 	cn := fileSystemSafeContainerName(container)
 	hostConfig.Binds = append(hostConfig.Binds, getBindMountMapping(
@@ -395,8 +401,7 @@ func copyDirFiles(srcDir string, destDir string) error {
 }
 
 func createTaskDepsDir(taskId string) error {
-	seelog.Error("Creating unified dep directory", HostDepsDirPrefix+taskId)
-	err := os.Mkdir(HostDepsDirPrefix+taskId, 0755)
+	err := os.MkdirAll(HostDepsDirPrefix+taskId, 0755)
 	if err != nil {
 		return err
 	}
