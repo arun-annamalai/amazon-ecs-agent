@@ -150,6 +150,8 @@ func (m *manager) StartAgent(ctx context.Context, client dockerapi.DockerClient,
 
 func (m *manager) doStartAgent(ctx context.Context, client dockerapi.DockerClient, task *apitask.Task, ma apicontainer.ManagedAgent, containerId string) (*AgentMetadata, error) {
 	execAgentCmdBinDir := ContainerDepsDirPrefix + ma.ID
+	// todo: remove this below
+	execAgentCmdBinDir = "C:\\Program Files\\Amazon\\SSM"
 	execAgentCmd := filepath.Join(execAgentCmdBinDir, SSMAgentBinName)
 	execCfg := types.ExecConfig{
 		User:   "0",
