@@ -57,8 +57,10 @@ var (
 	SSMAgentWorkerBinName = "ssm-agent-worker.exe"
 	SessionWorkerBinName  = "ssm-session-worker.exe"
 
-	HostLogDir         = config.AmazonECSProgramData + "\\exec"
-	ContainerLogDir    = config.AmazonProgramData + "\\SSM"
+	HostLogDir      = config.AmazonECSProgramData + "\\exec"
+	ContainerLogDir = config.AmazonProgramData + "\\SSM"
+
+	// since ecs agent windows is not running in a container, the agent and host log dirs are the same
 	ECSAgentExecLogDir = config.AmazonECSProgramData + "\\exec"
 
 	HostCertFile            = ecsAgentDepsCertsDir + "\\tls-ca-bundle.pem"
@@ -169,7 +171,7 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		return rErr
 	}
 	// Need to copy files over to container deps Folder
-	HostDepsDir := filepath.Join(HostDepsDirPrefix, taskId)
+	HostDepsDir := HostDepsDirPrefix + taskId
 	// Copy ssm binary files
 	copyDirFiles(latestBinVersionDir, HostDepsDir)
 
@@ -393,7 +395,8 @@ func copyDirFiles(srcDir string, destDir string) error {
 }
 
 func createTaskDepsDir(taskId string) error {
-	err := os.Mkdir(filepath.Join(HostDepsDirPrefix, taskId), 0755)
+	seelog.Error("Creating unified dep directory", HostDepsDirPrefix+taskId)
+	err := os.Mkdir(HostDepsDirPrefix+taskId, 0755)
 	if err != nil {
 		return err
 	}
