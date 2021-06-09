@@ -181,6 +181,8 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 	// Append TLS cert mount
 	// TODO: confirm that certs are not needed for Windows
 
+	// TODO: The SSM Agent has to run in this dir: C:\Program Files\Amazon\SSM
+	containerDepsFolder = "C:\\Program Files\\Amazon\\SSM"
 	// bind mount shared dependency folder containing bin and configs
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
 		HostDepsDirPrefix+taskId,
