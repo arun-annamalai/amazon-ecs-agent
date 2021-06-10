@@ -185,7 +185,7 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 	containerDepsFolder = "C:\\Program Files\\Amazon\\SSM"
 	// bind mount shared dependency folder containing bin and configs
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		HostDepsDirPrefix+taskId,
+		HostDepsDir,
 		containerDepsFolder))
 
 	// Add ssm log bind mount
@@ -413,6 +413,10 @@ func copyDirFiles(srcDir string, destDir string) error {
 }
 
 func createTaskDepsDir(taskId string) error {
+	// if the task dep already exists, skip
+	if isDir(HostDepsDirPrefix + taskId) {
+		return nil
+	}
 	err := os.MkdirAll(HostDepsDirPrefix+taskId, 0755)
 	if err != nil {
 		return err
