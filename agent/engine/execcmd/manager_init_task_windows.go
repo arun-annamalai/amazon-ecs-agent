@@ -19,6 +19,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,12 +27,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pborman/uuid"
-
 	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
 	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
+	"github.com/aws/amazon-ecs-agent/agent/config"
 	"github.com/cihub/seelog"
 	dockercontainer "github.com/docker/docker/api/types/container"
+	"github.com/pborman/uuid"
 )
 
 const (
@@ -43,23 +44,26 @@ const (
 var (
 	namelessContainerPrefix = "nameless-container-"
 
-	ecsAgentExecDepsDir = AmazonProgramFiles + "\\managed-agents\\execute-command"
+	ecsAgentExecDepsDir = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command"
 
 	// ecsAgentDepsBinDir is the directory where ECS Agent will read versions of SSM agent
 	ecsAgentDepsBinDir   = ecsAgentExecDepsDir + "\\bin"
 	ecsAgentDepsCertsDir = ecsAgentExecDepsDir + "\\certs"
 
-	ContainerDepsDirPrefix = AmazonProgramFiles + "\\ecs-execute-command-"
+	HostDepsDirPrefix      = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command\\container-dependencies-"
+	ContainerDepsDirPrefix = config.AmazonECSProgramFiles + "\\managed-agents\\execute-command-"
 
 	SSMAgentBinName       = "amazon-ssm-agent.exe"
 	SSMAgentWorkerBinName = "ssm-agent-worker.exe"
 	SessionWorkerBinName  = "ssm-session-worker.exe"
 
-	HostLogDir         = AmazonProgramData + "\\ecs\\exec"
-	ContainerLogDir    = AmazonProgramData + "\\ssm"
-	ECSAgentExecLogDir = AmazonProgramData + "\\exec"
+	HostLogDir      = config.AmazonECSProgramData + "\\exec"
+	ContainerLogDir = config.AmazonProgramData + "\\SSM"
 
-	HostCertFile            = hostExecDepsDir + "\\certs\\tls-ca-bundle.pem"
+	// since ecs agent windows is not running in a container, the agent and host log dirs are the same
+	ECSAgentExecLogDir = config.AmazonECSProgramData + "\\exec"
+
+	HostCertFile            = ecsAgentDepsCertsDir + "\\tls-ca-bundle.pem"
 	ContainerCertFileSuffix = "certs\\amazon-ssm-agent.crt"
 
 	containerConfigFileName   = "amazon-ssm-agent.json"
@@ -98,9 +102,9 @@ var (
     </exceptions>
     <outputs formatid="fmtinfo">
         <console formatid="fmtinfo"/>
-        <rollingfile type="size" filename="{{LOCALAPPDATA}}\Amazon\SSM\Logs\amazon-ssm-agent.log" maxsize="30000000" maxrolls="5"/>
+        <rollingfile type="size" filename="C:\ProgramData\Amazon\SSM\Logs\amazon-ssm-agent.log" maxsize="30000000" maxrolls="5"/>
         <filter levels="error,critical" formatid="fmterror">
-            <rollingfile type="size" filename="{{LOCALAPPDATA}}\Amazon\SSM\Logs\errors.log" maxsize="10000000" maxrolls="5"/>
+            <rollingfile type="size" filename="C:\ProgramData\Amazon\SSM\Logs\errors.log" maxsize="10000000" maxrolls="5"/>
         </filter>
     </outputs>
     <formats>
@@ -134,12 +138,12 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 	if !ok {
 		return errExecCommandManagedAgentNotFound
 	}
-	configFile, rErr := GetExecAgentConfigFileName(getSessionWorkersLimit(ma))
+	_, rErr = GetExecAgentConfigFileName(getSessionWorkersLimit(ma))
 	if rErr != nil {
 		rErr = fmt.Errorf("could not generate ExecAgent Config File: %v", rErr)
 		return rErr
 	}
-	logConfigFile, rErr := GetExecAgentLogConfigFile()
+	_, rErr = GetExecAgentLogConfigFile()
 	if rErr != nil {
 		rErr = fmt.Errorf("could not generate ExecAgent LogConfig file: %v", rErr)
 		return rErr
@@ -158,39 +162,49 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		return rErr
 	}
 
-	// Add ssm binary mounts
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(latestBinVersionDir, SSMAgentBinName),
-		filepath.Join(containerDepsFolder, SSMAgentBinName)))
+	// Note in Windows, file bind mounts are not supported so the binaries and configs are copied
+	// to a dir and entire dir is mounted
+	rErr = createTaskDepsDir(taskId)
 
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(latestBinVersionDir, SSMAgentWorkerBinName),
-		filepath.Join(containerDepsFolder, SSMAgentWorkerBinName)))
+	if rErr != nil {
+		rErr = fmt.Errorf("could not create task dependency directory")
+		return rErr
+	}
+	// Need to copy files over to container deps Folder
+	HostDepsDir := HostDepsDirPrefix + taskId
+	// Copy ssm binary files
+	copyDirFiles(latestBinVersionDir, HostDepsDir)
 
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(latestBinVersionDir, SessionWorkerBinName),
-		filepath.Join(containerDepsFolder, SessionWorkerBinName)))
-
-	// Add exec agent config file mount
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(HostExecConfigDir, configFile),
-		filepath.Join(containerDepsFolder, ContainerConfigFileSuffix)))
-
-	// Add exec agent log config file mount
-	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		filepath.Join(HostExecConfigDir, logConfigFile),
-		filepath.Join(containerDepsFolder, ContainerLogConfigFile)))
+	// Copy exec agent config files
+	copyDirFiles(HostExecConfigDir, HostDepsDir)
 
 	// Append TLS cert mount
+	// TODO: confirm that certs are not needed for Windows
+
+	// TODO: The SSM Agent has to run in this dir: C:\Program Files\Amazon\SSM
+	containerDepsFolder = "C:\\Program Files\\Amazon\\SSM"
+	// bind mount shared dependency folder containing bin and configs
 	hostConfig.Binds = append(hostConfig.Binds, getReadOnlyBindMountMapping(
-		HostCertFile,
-		filepath.Join(containerDepsFolder, ContainerCertFileSuffix)))
+		HostDepsDir,
+		containerDepsFolder))
 
 	// Add ssm log bind mount
 	cn := fileSystemSafeContainerName(container)
+
+	// In windows mounts are not created automatically, so need create
+	err := os.MkdirAll(filepath.Join(HostLogDir, taskId, cn), 0755)
+	if err != nil {
+		return err
+	}
+
 	hostConfig.Binds = append(hostConfig.Binds, getBindMountMapping(
 		filepath.Join(HostLogDir, taskId, cn),
 		ContainerLogDir))
+
+	// todo: this is a hacky workaround to get the plugins in the container
+	hostConfig.Binds = append(hostConfig.Binds, getBindMountMapping(
+		"C:\\Program Files\\Amazon\\SSM\\Plugins",
+		"C:\\Program Files\\Amazon\\SSM\\Plugins"))
 
 	container.UpdateManagedAgentByName(ExecuteCommandAgentName, apicontainer.ManagedAgentState{
 		ID: uuid,
@@ -226,6 +240,9 @@ func (m *manager) getLatestVersionedHostBinDir() (string, error) {
 	if latest == "" {
 		return "", fmt.Errorf("no valid versions were found in %s", m.hostBinDir)
 	}
+
+	// TODO: remove this
+	seelog.Error("windows init container has finished running")
 	return latest, nil
 }
 
@@ -276,6 +293,8 @@ func getAgentLogConfigFile() (string, error) {
 	logConfigFileName := fmt.Sprintf(logConfigFileNameTemplate, hash)
 	// check if config file exists already
 	logConfigFilePath := filepath.Join(ECSAgentExecConfigDir, logConfigFileName)
+	//todo: remove this or solve elsewhere
+	logConfigFilePath = filepath.Join(ECSAgentExecConfigDir, "seelog.xml")
 	if fileExists(logConfigFilePath) && validConfigExists(logConfigFilePath, hash) {
 		return logConfigFileName, nil
 	}
@@ -317,6 +336,8 @@ func getAgentConfigFileName(sessionLimit int) (string, error) {
 	configFileName := fmt.Sprintf(execAgentConfigFileNameTemplate, hash)
 	// check if config file exists already
 	configFilePath := filepath.Join(ECSAgentExecConfigDir, configFileName)
+	//todo: remove this, or find a solution later
+	configFilePath = filepath.Join(ECSAgentExecConfigDir, "amazon-ssm-agent.json")
 	if fileExists(configFilePath) && validConfigExists(configFilePath, hash) {
 		return configFileName, nil
 	}
@@ -363,4 +384,42 @@ func createNewConfigFile(config, configFilePath string) error {
 
 func certsExist() bool {
 	return fileExists(filepath.Join(ecsAgentDepsCertsDir, "tls-ca-bundle.pem"))
+}
+
+func copyDirFiles(srcDir string, destDir string) error {
+	files, err := ioUtilReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		new, err := os.Create(filepath.Join(destDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		original, err := os.Open(filepath.Join(srcDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(new, original)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createTaskDepsDir(taskId string) error {
+	// if the task dep already exists, skip
+	if isDir(HostDepsDirPrefix + taskId) {
+		return nil
+	}
+	err := os.MkdirAll(HostDepsDirPrefix+taskId, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
 }

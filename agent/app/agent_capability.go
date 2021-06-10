@@ -377,12 +377,17 @@ func (agent *ecsAgent) appendTaskENICapabilities(capabilities []*ecs.Attribute) 
 func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]*ecs.Attribute, error) {
 	// for an instance to be exec-enabled, it needs resources needed by SSM (binaries, configuration files and certs)
 	// the following bind mounts are defined in ecs-init and added to the ecs-agent container
-
+	// TODO: remove this
+	seelog.Error("windows agent cap has run")
 	capabilityExecRootDir := filepath.Join(capabilityDepsRootDir, capabilityExec)
 	binDir := filepath.Join(capabilityExecRootDir, capabilityExecBinRelativePath)
 	configDir := filepath.Join(capabilityExecRootDir, capabilityExecConfigRelativePath)
 	certsDir := filepath.Join(capabilityExecRootDir, capabilityExecCertsRelativePath)
 
+	// TODO: remove this
+	seelog.Error("%s", binDir)
+	seelog.Error("%s", configDir)
+	seelog.Error("%s", certsDir)
 	// top-level folders, /bin, /config, /certs
 	dependencies := map[string][]string{
 		binDir:    []string{},
@@ -392,7 +397,8 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 	if exists, err := dependenciesExist(dependencies); err != nil || !exists {
 		return capabilities, err
 	}
-
+	// TODO: remove this
+	seelog.Error("here0.1")
 	// ssm binaries are stored in /bin/<version>/, 1 version is downloaded by ami builder for ECS instances
 	binDependencies := map[string][]string{}
 	// child folders named by version inside binDir, e.g. 3.0.236.0
@@ -400,6 +406,10 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 	if err != nil {
 		return capabilities, err
 	}
+
+	// TODO: remove this
+	seelog.Error("here0.2")
+
 	// use raw string for regular expression to avoid escaping backslash (\)
 	var validSsmVersion = regexp.MustCompile(`^\d+(\.\d+)*$`)
 	for _, binFolder := range binFolders {
@@ -415,6 +425,8 @@ func (agent *ecsAgent) appendExecCapabilities(capabilities []*ecs.Attribute) ([]
 		versionSubDirectory := filepath.Join(binDir, binFolder)
 		binDependencies[versionSubDirectory] = capabilityExecRequiredBinaries
 	}
+	// TODO: remove this
+	seelog.Error("here")
 	if len(binDependencies) < 1 {
 		return capabilities, nil
 	}
@@ -442,10 +454,14 @@ func defaultGetSubDirectories(path string) ([]string, error) {
 
 func dependenciesExist(dependencies map[string][]string) (bool, error) {
 	for directory, files := range dependencies {
+
 		if exists, err := pathExists(directory, true); err != nil || !exists {
+			// TODO: remove this
+			seelog.Error("does not exists: ", directory)
 			return false, err
 		}
-
+		// TODO: remove this
+		seelog.Error("exists: ", directory)
 		for _, filename := range files {
 			path := filepath.Join(directory, filename)
 			if exists, err := pathExists(path, false); err != nil || !exists {
@@ -483,6 +499,8 @@ func checkAnyValidDependency(dependencies map[string][]string) (bool, error) {
 
 func defaultPathExists(path string, shouldBeDirectory bool) (bool, error) {
 	fileInfo, err := os.Stat(path)
+	// TODO: remove this
+	seelog.Error("func: ", fileInfo)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil

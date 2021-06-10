@@ -1,3 +1,5 @@
+// +build windows
+
 // Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"). You may
@@ -14,20 +16,12 @@
 package execcmd
 
 import (
-	"os"
 	"path/filepath"
+
+	"github.com/aws/amazon-ecs-agent/agent/config"
 )
 
 var (
-	// EnvProgramFiles Windows environment variable (C:\Program Files)
-	EnvProgramFiles       = os.Getenv("ProgramFiles")
-	AmazonProgramFiles    = filepath.Join(EnvProgramFiles, "Amazon")
-	capabilityDepsRootDir = filepath.Join(AmazonProgramFiles, "managed-agents")
-
-	// EnvProgramData Windows environment variable (C:\ProgramData)
-	EnvProgramData    = os.Getenv("ProgramData")
-	AmazonProgramData = filepath.Join(EnvProgramData, "Amazon")
-
-	hostExecDepsDir = filepath.Join(AmazonProgramFiles, "ecs\\deps\\execute-command")
-	HostBinDir      = filepath.Join(AmazonProgramFiles, "bin")
+	hostExecDepsDir = filepath.Join(config.AmazonECSProgramFiles, "managed-agents", "execute-command")
+	HostBinDir      = filepath.Join(hostExecDepsDir, "bin")
 )
