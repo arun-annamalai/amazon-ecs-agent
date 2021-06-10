@@ -201,6 +201,11 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 		filepath.Join(HostLogDir, taskId, cn),
 		ContainerLogDir))
 
+	// todo: this is a hacky workaround to get the plugins in the container
+	hostConfig.Binds = append(hostConfig.Binds, getBindMountMapping(
+		"C:\\Program Files\\Amazon\\SSM\\Plugins",
+		"C:\\Program Files\\Amazon\\SSM\\Plugins"))
+
 	container.UpdateManagedAgentByName(ExecuteCommandAgentName, apicontainer.ManagedAgentState{
 		ID: uuid,
 	})
