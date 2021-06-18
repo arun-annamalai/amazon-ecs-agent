@@ -15,26 +15,17 @@
 package execcmd
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/pborman/uuid"
 
 	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
 	apicontainerstatus "github.com/aws/amazon-ecs-agent/agent/api/container/status"
 )
 
 const (
-	namelessContainerPrefix = "nameless-container-"
-
 	ecsAgentExecDepsDir = "/managed-agents/execute-command"
 
 	// ecsAgentDepsBinDir is the directory where ECS Agent will read versions of SSM agent
@@ -42,10 +33,6 @@ const (
 	ecsAgentDepsCertsDir = ecsAgentExecDepsDir + "/certs"
 
 	ContainerDepsDirPrefix = "/ecs-execute-command-"
-
-	// filePerm is the permission for the exec agent config file.
-	filePerm            = 0644
-	defaultSessionLimit = 2
 
 	SSMAgentBinName       = "amazon-ssm-agent"
 	SSMAgentWorkerBinName = "ssm-agent-worker"
@@ -58,16 +45,13 @@ const (
 	HostCertFile            = "/var/lib/ecs/deps/execute-command/certs/tls-ca-bundle.pem"
 	ContainerCertFileSuffix = "certs/amazon-ssm-agent.crt"
 
-	containerConfigFileName   = "amazon-ssm-agent.json"
-	ContainerConfigDirName    = "config"
 	ContainerConfigFileSuffix = "configuration/" + containerConfigFileName
 
 	// ECSAgentExecConfigDir is the directory where ECS Agent will write the ExecAgent config files to
 	ECSAgentExecConfigDir = ecsAgentExecDepsDir + "/" + ContainerConfigDirName
 	// HostExecConfigDir is the dir where ExecAgents Config files will live
-	HostExecConfigDir          = hostExecDepsDir + "/" + ContainerConfigDirName
-	ExecAgentLogConfigFileName = "seelog.xml"
-	ContainerLogConfigFile     = "configuration/" + ExecAgentLogConfigFileName
+	HostExecConfigDir      = hostExecDepsDir + "/" + ContainerConfigDirName
+	ContainerLogConfigFile = "configuration/" + ExecAgentLogConfigFileName
 )
 
 var (
@@ -107,9 +91,8 @@ var (
 </formats>
 </seelog>`
 	// TODO: [ecs-exec] seelog config needs to be implemented following a similar approach to ss, config
-	execAgentConfigFileNameTemplate    = `amazon-ssm-agent-%s.json`
-	logConfigFileNameTemplate          = `seelog-%s.xml`
-	errExecCommandManagedAgentNotFound = fmt.Errorf("managed agent not found (%s)", ExecuteCommandAgentName)
+	execAgentConfigFileNameTemplate = `amazon-ssm-agent-%s.json`
+	logConfigFileNameTemplate       = `seelog-%s.xml`
 )
 
 // InitializeContainer adds the necessary bind mounts in order for the ExecCommandAgent to run properly in the container
@@ -192,76 +175,6 @@ func (m *manager) InitializeContainer(taskId string, container *apicontainer.Con
 	return nil
 }
 
-func (m *manager) getLatestVersionedHostBinDir() (string, error) {
-	versions, err := retrieveAgentVersions(ecsAgentDepsBinDir)
-	if err != nil {
-		return "", err
-	}
-	sort.Sort(sort.Reverse(byAgentVersion(versions)))
-
-	var latest string
-	for _, v := range versions {
-		vStr := v.String()
-		ecsAgentDepsVersionedBinDir := filepath.Join(ecsAgentDepsBinDir, vStr)
-		if !fileExists(filepath.Join(ecsAgentDepsVersionedBinDir, SSMAgentBinName)) {
-			continue // try falling back to the previous version
-		}
-		// TODO: [ecs-exec] This requirement will be removed for SSM agent V2
-		if !fileExists(filepath.Join(ecsAgentDepsVersionedBinDir, SSMAgentWorkerBinName)) {
-			continue // try falling back to the previous version
-		}
-		if !fileExists(filepath.Join(ecsAgentDepsVersionedBinDir, SessionWorkerBinName)) {
-			continue // try falling back to the previous version
-		}
-		latest = filepath.Join(m.hostBinDir, vStr)
-		break
-	}
-	if latest == "" {
-		return "", fmt.Errorf("no valid versions were found in %s", m.hostBinDir)
-	}
-	return latest, nil
-}
-
-func getReadOnlyBindMountMapping(hostDir, containerDir string) string {
-	return getBindMountMapping(hostDir, containerDir) + ":ro"
-}
-
-func getBindMountMapping(hostDir, containerDir string) string {
-	return hostDir + ":" + containerDir
-}
-
-var newUUID = uuid.New
-
-func fileSystemSafeContainerName(c *apicontainer.Container) string {
-	// Trim leading hyphens since they're not valid directory names
-	cn := strings.TrimLeft(c.Name, "-")
-	if cn == "" {
-		// Fallback name in the extreme case that we end up with an empty string after trimming all leading hyphens.
-		return namelessContainerPrefix + newUUID()
-	}
-	return cn
-}
-
-func getSessionWorkersLimit(ma apicontainer.ManagedAgent) int {
-	// TODO [ecs-exec] : verify that returning the default session limit (2) is ok in case of any errors, misconfiguration
-	limit := defaultSessionLimit
-	if ma.Properties == nil { // This means ACS didn't send the limit
-		return limit
-	}
-	limitStr, ok := ma.Properties["sessionLimit"]
-	if !ok { // This also means ACS didn't send the limit
-		return limit
-	}
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil { // This means ACS send a limit that can't be converted to an int
-		return limit
-	}
-	if limit <= 0 {
-		limit = defaultSessionLimit
-	}
-	return limit
-}
-
 var GetExecAgentLogConfigFile = getAgentLogConfigFile
 
 func getAgentLogConfigFile() (string, error) {
@@ -285,8 +198,6 @@ func getAgentLogConfigFile() (string, error) {
 	return logConfigFileName, nil
 }
 
-var removeAll = os.RemoveAll
-
 func validConfigExists(configFilePath, expectedHash string) bool {
 	config, err := getFileContent(configFilePath)
 	if err != nil {
@@ -294,12 +205,6 @@ func validConfigExists(configFilePath, expectedHash string) bool {
 	}
 	hash := getExecAgentConfigHash(string(config))
 	return strings.Compare(expectedHash, hash) == 0
-}
-
-var getFileContent = readFileContent
-
-func readFileContent(filePath string) ([]byte, error) {
-	return ioutil.ReadFile(filePath)
 }
 
 var GetExecAgentConfigFileName = getAgentConfigFileName
@@ -324,34 +229,6 @@ func getAgentConfigFileName(sessionLimit int) (string, error) {
 		return "", err
 	}
 	return configFileName, nil
-}
-
-func getExecAgentConfigHash(config string) string {
-	hash := sha256.New()
-	hash.Write([]byte(config))
-	return base64.URLEncoding.EncodeToString(hash.Sum(nil))
-}
-
-var osStat = os.Stat
-
-func fileExists(path string) bool {
-	if fi, err := osStat(path); err == nil {
-		return !fi.IsDir()
-	}
-	return false
-}
-
-func isDir(path string) bool {
-	if fi, err := osStat(path); err == nil {
-		return fi.IsDir()
-	}
-	return false
-}
-
-var createNewExecAgentConfigFile = createNewConfigFile
-
-func createNewConfigFile(config, configFilePath string) error {
-	return ioutil.WriteFile(configFilePath, []byte(config), filePerm)
 }
 
 func certsExist() bool {
