@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 Param (
-  [string]$Platform="windows2016"
+  [string]$Platform="windows2019"
 )
 
 if ($Platform -like "windows2016") {
@@ -47,10 +47,11 @@ Invoke-Expression "${PSScriptRoot}\..\misc\netkitten\build.ps1"
 $cwd = (pwd).Path
 try {
   cd "${PSScriptRoot}"
-  $env:ECS_LOGLEVEL = 'debug'; go test -race -tags integration -timeout=40m -v ../agent/engine ../agent/stats ../agent/app
+  $env:ECS_LOGLEVEL = 'debug'; go test -race -tags integration -timeout=40m -v ../agent/engine/execcmd
   $testsExitCode = $LastExitCode
 } finally {
   cd "$cwd"
 }
 
 exit $testsExitCode
+
