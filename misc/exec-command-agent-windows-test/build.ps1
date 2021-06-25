@@ -20,6 +20,7 @@ New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR -ItemType Directory -Force
 go build -tags integration -installsuffix cgo -a -o $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\amazon-ssm-agent.exe ${PSScriptRoot}\sleep\
 New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\ssm-agent-worker.exe -ItemType File -Force
 New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\ssm-session-worker.exe -ItemType File -Force
+New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\kill.bat -ItemType File -Force -Value "taskkill /f /im amazon-ssm-agent.exe"
 
 # Dont want to destroy local development environments plugin folder
 $SIMULATED_SSM_PLUGINS_DIR="C:\Program Files\Amazon\SSM\Plugins"
