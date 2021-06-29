@@ -808,7 +808,7 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 			cmdPos := -1
 			pidPos := -1
 			for i, t := range top.Titles {
-				if strings.ToUpper(t) == "CMD" {
+				if strings.ToUpper(t) == "NAME" {
 					cmdPos = i
 				}
 				if strings.ToUpper(t) == "PID" {
@@ -816,7 +816,7 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 				}
 
 			}
-			require.NotEqual(t, -1, cmdPos, "CMD title not found in the container top response")
+			require.NotEqual(t, -1, cmdPos, "NAME title not found in the container top response")
 			require.NotEqual(t, -1, pidPos, "PID title not found in the container top response")
 			for _, proc := range top.Processes {
 				matched, _ := regexp.MatchString(execCmdAgentProcessRegex, proc[cmdPos])
