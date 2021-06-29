@@ -777,7 +777,7 @@ func verifyExecCmdAgentExpectedMounts(t *testing.T,
 			}
 		}
 		require.NotNil(t, found, "Expected mount point not found (%s)", em.source)
-		require.Regexp(t, em.destRegex, found.Destination, "Destination for mount point (%s) is invalid expected: %s, actual: %s", em.source, em.destRegex, found.Destination)
+		require.Equal(t, em.destRegex, found.Destination, "Destination for mount point (%s) is invalid expected: %s, actual: %s", em.source, em.destRegex, found.Destination)
 		if em.readOnly {
 			require.Equal(t, "ro", found.Mode, "Destination for mount point (%s) should be read only", em.source)
 		} else {
