@@ -875,7 +875,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		Cmd: []string{"C:\\Program Files\\Amazon\\SSM\\run.bat"},
 	})
 	require.NoError(t, err)
-
+	time.Sleep(20000 * time.Second)
 	err = client.ContainerExecStart(ctx, create.ID, types.ExecStartCheck{
 		Detach: true,
 	})
