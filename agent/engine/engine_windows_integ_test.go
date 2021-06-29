@@ -67,7 +67,7 @@ const (
 	testExecCommandAgentImage    = "amazon/amazon-ecs-exec-command-agent-windows-test:make"
 	testBaseImage                = "amazon-ecs-ftest-windows-base:make"
 	dockerVolumeDirectoryFormat  = "c:\\ProgramData\\docker\\volumes\\%s\\_data"
-	testExecCommandAgentKillBin  = "c:\\kill.exe"
+	testExecCommandAgentKillBin  = "C:\\kill.exe"
 	testExecCommandAgentSleepBin = "c:\\sleep.exe"
 )
 
@@ -868,7 +868,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
-		Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
+		Cmd:    []string{testExecCommandAgentKillBin + " -pid=" + pid},
 	})
 	require.NoError(t, err)
 
