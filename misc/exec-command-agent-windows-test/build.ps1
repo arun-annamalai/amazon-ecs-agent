@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 # create the container image used to run execcmd integ tests
-docker build -t "amazon/amazon-ecs-exec-command-agent-windows-test:make" -f "${PSScriptRoot}/windows.dockerfile" ${PSScriptRoot}
+docker build --no-cache -t "amazon/amazon-ecs-exec-command-agent-windows-test:make" -f "${PSScriptRoot}/windows.dockerfile" ${PSScriptRoot}
 
 $SIMULATED_ECS_AGENT_DEPS_BIN_DIR="C:\Program Files\Amazon\ECS\managed-agents\execute-command\bin\1.0.0.0"
 Remove-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR -Recurse -Force -ErrorAction SilentlyContinue
