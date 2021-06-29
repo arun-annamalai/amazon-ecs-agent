@@ -15,11 +15,7 @@
 docker build -t "amazon/amazon-ecs-exec-command-agent-windows-test:make" -f "${PSScriptRoot}/windows.dockerfile" ${PSScriptRoot}
 
 $SIMULATED_ECS_AGENT_DEPS_BIN_DIR="C:\Program Files\Amazon\ECS\managed-agents\execute-command\bin\1.0.0.0"
-Remove-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR -ItemType Directory -Force
 go build -tags integration -installsuffix cgo -a -o $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\amazon-ssm-agent.exe ${PSScriptRoot}\sleep\
-New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\ssm-agent-worker.exe -ItemType File -Force
-New-Item -Path $SIMULATED_ECS_AGENT_DEPS_BIN_DIR\ssm-session-worker.exe -ItemType File -Force
 
 # Dont want to destroy local development environments plugin folder
 $SIMULATED_SSM_PLUGINS_DIR="C:\Program Files\Amazon\SSM\Plugins"

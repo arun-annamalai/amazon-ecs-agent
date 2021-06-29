@@ -872,7 +872,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		Detach: true,
 		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
-		Cmd: []string{"C:\\kill.exe"},
+		Cmd: []string{"C:\\Program Files\\Amazon\\ECS\\managed-agents\\execute-command\\bin\\1.0.0.0\\run.bat"},
 	})
 	require.NoError(t, err)
 
