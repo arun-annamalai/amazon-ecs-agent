@@ -820,6 +820,7 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 			// the Windows top command returns NAME title instead of CMD (Linux)
 			require.NotEqual(t, -1, namePos, "NAME title not found in the container top response")
 			require.NotEqual(t, -1, pidPos, "PID title not found in the container top response")
+			seelog.Infof("Processes running in container: %s", top.Processes)
 			for _, proc := range top.Processes {
 				matched, _ := regexp.MatchString(execCmdAgentProcessRegex, proc[namePos])
 				if matched {
