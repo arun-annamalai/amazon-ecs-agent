@@ -872,7 +872,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
 		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
-		Cmd: []string{"powershell -command \"TASKKILL /T /F /PID " + pid + "\""},
+		Cmd: []string{"powershell.exe -command \"TASKKILL /T /F /PID " + pid + "\""},
 	})
 	require.NoError(t, err)
 
