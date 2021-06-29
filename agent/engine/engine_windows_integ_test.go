@@ -881,7 +881,21 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		Detach: true,
 	})
 	require.NoError(t, err)
-	time.Sleep(20)
+
+	create, err = client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
+		User:   "NT AUTHORITY\\SYSTEM",
+		Detach: true,
+		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
+		Cmd: []string{"taskkill", "/F", "/IM amazon-ssm-agent.exe"},
+	})
+	require.NoError(t, err)
+
+	err = client.ContainerExecStart(ctx, create.ID, types.ExecStartCheck{
+		Detach: true,
+	})
+	require.NoError(t, err)
+
+	time.Sleep(5 * time.Second)
 	top, err := client.ContainerTop(ctx, containerId, nil)
 	seelog.Infof("LOOK HERE1")
 	seelog.Infof("LOOK HERE1")
