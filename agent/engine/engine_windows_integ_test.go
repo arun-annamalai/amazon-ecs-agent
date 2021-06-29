@@ -860,7 +860,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   containerAdminUser,
 		Detach: true,
-		Cmd:    []string{"cmd", "/C", "mkdir hello123"},
+		Cmd:    []string{"cmd", "/C", "taskkill /F /IM amazon-ssm-agent.exe"},
 	})
 
 	require.NoError(t, err)
@@ -869,7 +869,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		Detach: true,
 	})
 	require.NoError(t, err)
-	time.Sleep(2 * time.Minute)
+	// time.Sleep(2 * time.Minute)
 	top, err := client.ContainerTop(ctx, containerId, nil)
 	seelog.Infof("---------------------------")
 	seelog.Infof("Right after kill cmd sent, Processes running in container: %s", top.Processes)
