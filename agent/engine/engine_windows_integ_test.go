@@ -737,29 +737,30 @@ func verifyExecCmdAgentExpectedMounts(t *testing.T,
 	testTaskId, containerId, containerName, testExecCmdHostVersionedBinDir, testconfigDirName string) {
 	inspectState, _ := client.ContainerInspect(ctx, containerId)
 
+	// in Windows all mounts are returned lowercase
 	expectedMounts := []struct {
 		source    string
 		destRegex string
 		readOnly  bool
 	}{
 		{
-			source:    testExecCmdHostVersionedBinDir,
-			destRegex: containerDepsDir,
+			source:    strings.ToLower(testExecCmdHostVersionedBinDir),
+			destRegex: strings.ToLower(containerDepsDir),
 			readOnly:  true,
 		},
 		{
-			source:    filepath.Join(execcmd.HostExecConfigDir, testconfigDirName),
-			destRegex: filepath.Join(containerDepsDir, "configuration"),
+			source:    strings.ToLower(filepath.Join(execcmd.HostExecConfigDir, testconfigDirName)),
+			destRegex: strings.ToLower(filepath.Join(containerDepsDir, "configuration")),
 			readOnly:  true,
 		},
 		{
-			source:    filepath.Join(execcmd.HostLogDir, testTaskId, containerName),
-			destRegex: execcmd.ContainerLogDir,
+			source:    strings.ToLower(filepath.Join(execcmd.HostLogDir, testTaskId, containerName)),
+			destRegex: strings.ToLower(execcmd.ContainerLogDir),
 			readOnly:  false,
 		},
 		{
-			source:    execcmd.SSMPluginDir,
-			destRegex: execcmd.SSMPluginDir,
+			source:    strings.ToLower(execcmd.SSMPluginDir),
+			destRegex: strings.ToLower(execcmd.SSMPluginDir),
 			readOnly:  true,
 		},
 	}
