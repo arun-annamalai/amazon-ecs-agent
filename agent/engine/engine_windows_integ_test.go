@@ -871,10 +871,14 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	require.NoError(t, err)
 
 	err = client.ContainerExecStart(ctx, create.ID, types.ExecStartCheck{
-		Detach: true,
+		Detach: false,
 	})
 	require.NoError(t, err)
 
 	// windows docker exec takes longer than Linux
-	time.Sleep(4 * time.Second)
+	//time.Sleep(4 * time.Second)
+	//select {
+	//case <-time.After(10 * time.Second):
+	//}
+
 }
