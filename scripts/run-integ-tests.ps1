@@ -48,7 +48,7 @@ Invoke-Expression "${PSScriptRoot}\..\misc\exec-command-agent-test\build.ps1"
 $cwd = (pwd).Path
 try {
   cd "${PSScriptRoot}"
-  $env:ECS_LOGLEVEL = 'debug'; go test -race -tags integration -timeout=40m -v ../agent/engine -run TestManagedAgentEvent
+  $env:ECS_LOGLEVEL = 'debug'; go test -race -tags integration -timeout=40m -v ../agent/engine -run TestExecCommandAgent
   $testsExitCode = $LastExitCode
 } finally {
   cd "$cwd"
