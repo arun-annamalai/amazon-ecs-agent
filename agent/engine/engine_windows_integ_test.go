@@ -533,6 +533,7 @@ func verifyContainerCredentialSpec(client *sdkClient.Client, id, credentialspecO
 // 6. Kill the fake amazon-ssm-agent using the PID retrieved in previous step
 // 7. Verify that the engine restarted our fake amazon-ssm-agent by doing docker top one more time (a new PID should popup)
 func TestExecCommandAgent(t *testing.T) {
+	// the execcmd feature is not supported for Win2016
 	if windows2016, _ := config.IsWindows2016(); windows2016 {
 		return
 	}
@@ -608,6 +609,7 @@ func TestExecCommandAgent(t *testing.T) {
 
 // TestManagedAgentEvent validates the emitted container events for a started and a stopped managed agent.
 func TestManagedAgentEvent(t *testing.T) {
+	// the execcmd feature is not supported for Win2016
 	if windows2016, _ := config.IsWindows2016(); windows2016 {
 		return
 	}
@@ -745,6 +747,7 @@ func verifyExecCmdAgentExpectedMounts(t *testing.T,
 	testTaskId, containerId, containerName, testExecCmdHostVersionedBinDir, testconfigDirName string) {
 	inspectState, _ := client.ContainerInspect(ctx, containerId)
 
+	// The dockerclient only gives back lowercase paths in Windows
 	expectedMounts := []struct {
 		source    string
 		destRegex string
