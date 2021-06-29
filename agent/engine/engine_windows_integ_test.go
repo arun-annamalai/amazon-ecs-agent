@@ -860,7 +860,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   containerAdminUser,
 		Detach: true,
-		Cmd:    []string{"cmd", "/C", "mkdir test135"},
+		Cmd:    []string{"cmd", "/C", "mkdir C:\\test135"},
 	})
 	time.Sleep(2 * time.Minute)
 	require.NoError(t, err)
