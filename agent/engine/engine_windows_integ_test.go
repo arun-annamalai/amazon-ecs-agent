@@ -873,6 +873,19 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		Detach: true,
 	})
 	require.NoError(t, err)
+
+	create, err = client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
+		User:   "NT AUTHORITY\\SYSTEM",
+		Detach: true,
+		Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
+	})
+	require.NoError(t, err)
+
+	err = client.ContainerExecStart(ctx, create.ID, types.ExecStartCheck{
+		Detach: true,
+	})
+	require.NoError(t, err)
+
 	top, err := client.ContainerTop(ctx, containerId, nil)
 	seelog.Infof("Processes running in container right after kill command issued: %s", top.Processes)
 }

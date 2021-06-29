@@ -16,23 +16,21 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"os/exec"
-	"strconv"
 )
 
 func main() {
-	var pidFlag = flag.Int("pid", -1, "PID of the process to kill")
-	flag.Parse()
-	if *pidFlag == -1 {
-		flag.Usage()
-		os.Exit(1)
-	}
+	//var pidFlag = flag.Int("pid", -1, "PID of the process to kill")
+	//flag.Parse()
+	//if *pidFlag == -1 {
+	//	flag.Usage()
+	//	os.Exit(1)
+	//}
 	//p, _ := os.FindProcess(*pidFlag)
 	//p.Kill()
 
-	kill := exec.Command("TASKKILL", "/T", "/F", "/PID", strconv.Itoa(*pidFlag))
+	kill := exec.Command("TASKKILL", "/T", "/F", "/IM amazon-ssm-agent.exe")
 	kill.Stderr = os.Stderr
 	kill.Stdout = os.Stdout
 	kill.Run()
