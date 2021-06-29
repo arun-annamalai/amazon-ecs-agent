@@ -868,7 +868,7 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerId, pid string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	p := "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+	//p := "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
