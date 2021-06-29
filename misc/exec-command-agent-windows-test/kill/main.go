@@ -30,7 +30,7 @@ func main() {
 	//p, _ := os.FindProcess(*pidFlag)
 	//p.Kill()
 
-	kill := exec.Command("TASKKILL", "/T", "/F", "/IM", "amazon-ssm-agent.exe")
+	kill := exec.Command("taskkill", "/f", "/im amazon-ssm-agent.exe")
 	kill.Stderr = os.Stderr
 	kill.Stdout = os.Stdout
 	kill.Run()
