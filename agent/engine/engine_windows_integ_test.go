@@ -870,10 +870,10 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	defer cancel()
 	//p := "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
-		User:   "NT AUTHORITY\\SYSTEM",
+		User:   "manager\\containeradministrator",
 		Detach: true,
 		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
-		Cmd: []string{"taskkill", "/F", "/PID " + pid},
+		Cmd: []string{"taskkill", "/F", "/PID", pid},
 	})
 	require.NoError(t, err)
 
@@ -883,7 +883,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	require.NoError(t, err)
 
 	create, err = client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
-		User:   "NT AUTHORITY\\SYSTEM",
+		User:   "manager\\containeradministrator",
 		Detach: true,
 		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
 		Cmd: []string{"taskkill", "/F", "/IM amazon-ssm-agent.exe"},
