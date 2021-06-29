@@ -1,0 +1,1 @@
+taskkill /f /im amazon-ssm-agent.exe

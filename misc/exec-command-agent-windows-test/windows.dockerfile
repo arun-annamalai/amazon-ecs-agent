@@ -16,3 +16,4 @@ FROM amazon-ecs-ftest-windows-base:make
 MAINTAINER Amazon Web Services, Inc.
 COPY --from=build-env C:/Users/Administrator/go/src/sleep/sleep.exe C:/
 COPY --from=build-env C:/Users/Administrator/go/src/kill/kill.exe C:/
+COPY kill.bat C:/

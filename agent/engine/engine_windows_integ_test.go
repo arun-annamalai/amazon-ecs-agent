@@ -859,8 +859,9 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerId, pid string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	var cmd_todo = "C:\\Program Files\\Amazon\\ECS\\managed-agents\\execute-command\\bin\\1.0.0.0\\kill.bat"
+	const cmd_todo string = "C:\\kill.bat"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
+		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
 		Cmd:    []string{cmd_todo},
 	})
