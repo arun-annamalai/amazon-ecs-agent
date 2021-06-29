@@ -763,7 +763,10 @@ func verifyExecCmdAgentExpectedMounts(t *testing.T,
 			readOnly:  true,
 		},
 	}
-
+	seelog.Infof("LOOK HERE FOR THE DEBUG YOU NEED")
+	for _, m := range inspectState.Mounts {
+		seelog.Infof(m.Source)
+	}
 	for _, em := range expectedMounts {
 		var found *types.MountPoint
 		for _, m := range inspectState.Mounts {
@@ -781,10 +784,7 @@ func verifyExecCmdAgentExpectedMounts(t *testing.T,
 		}
 		require.Equal(t, "bind", string(found.Type), "Destination for mount point (%s) is not of type bind", em.source)
 	}
-	seelog.Infof("LOOK HERE FOR THE DEBUG YOU NEED")
-	for _, m := range inspectState.Mounts {
-		seelog.Infof(m.Source)
-	}
+
 	require.Equal(t, len(expectedMounts), len(inspectState.Mounts), "Wrong number of bind mounts detected in container (%s)", containerName)
 }
 
