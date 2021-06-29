@@ -866,4 +866,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		Detach: true,
 	})
 	require.NoError(t, err)
+
+	top, err := client.ContainerTop(ctx, containerId, nil)
+	seelog.Infof("Right after kill cmd sent, Processes running in container: %s", top.Processes)
 }
