@@ -833,6 +833,9 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 					return
 				}
 			}
+			seelog.Infof("LOOK HERE")
+			seelog.Infof("LOOK HERE")
+			seelog.Infof("LOOK HERE")
 			seelog.Infof("Processes running in container: %s", top.Processes)
 			select {
 			case <-ctx.Done():
