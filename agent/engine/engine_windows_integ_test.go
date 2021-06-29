@@ -679,6 +679,8 @@ func TestManagedAgentEvent(t *testing.T) {
 
 			taskEngine.(*DockerTaskEngine).deleteTask(testTask)
 			_, err = os.Stat(execAgentLogPath)
+			seelog.Warnf("-----------")
+			seelog.Warnf("%S", err)
 			assert.True(t, os.IsNotExist(err), "execAgent log cleanup failed")
 			os.RemoveAll(execcmd.ECSAgentExecConfigDir)
 		})
