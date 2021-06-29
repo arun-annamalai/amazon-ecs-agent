@@ -868,11 +868,12 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerId, pid string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+	p := "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
 		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
-		Cmd: []string{"powershell.exe -command \"TASKKILL /T /F /PID " + pid + "\""},
+		Cmd: []string{"taskkill", "/F", "/PID", pid},
 	})
 	require.NoError(t, err)
 
