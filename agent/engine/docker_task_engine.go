@@ -620,6 +620,10 @@ func (engine *DockerTaskEngine) sweepTask(task *apitask.Task) {
 var removeAll = os.RemoveAll
 
 func (engine *DockerTaskEngine) deleteTask(task *apitask.Task) {
+	seelog.Warnf("LOOK HERE")
+	seelog.Warnf("LOOK HERE")
+	seelog.Warnf("LOOK HERE")
+	seelog.Warnf("LOOK HERE")
 	seelog.Warnf("%v", task.GetResources())
 	for _, resource := range task.GetResources() {
 		err := resource.Cleanup()
