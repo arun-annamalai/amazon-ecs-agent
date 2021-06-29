@@ -856,7 +856,7 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerId, pid string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	containerAdminUser := "ContainerAdministrator"
+	containerAdminUser := "NT AUTHORITY\\SYSTEM"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   containerAdminUser,
 		Detach: true,
