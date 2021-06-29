@@ -856,6 +856,10 @@ func verifyMockExecCommandAgentStatus(t *testing.T, client *sdkClient.Client, co
 func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerId, pid string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+	top, err := client.ContainerTop(ctx, containerId, nil)
+	seelog.Infof("---------------------------")
+	seelog.Infof("Right before kill cmd sent, Processes running in container: %s", top.Processes)
+
 	containerAdminUser := "NT AUTHORITY\\SYSTEM"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   containerAdminUser,
@@ -870,7 +874,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	})
 	require.NoError(t, err)
 	time.Sleep(5 * time.Minute)
-	top, err := client.ContainerTop(ctx, containerId, nil)
+	top, err = client.ContainerTop(ctx, containerId, nil)
 	seelog.Infof("---------------------------")
 	seelog.Infof("Right after kill cmd sent, Processes running in container: %s", top.Processes)
 }
