@@ -865,7 +865,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	containerAdminUser := "NT AUTHORITY\\SYSTEM"
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   containerAdminUser,
-		Detach: true,
+		Detach: false,
 		Cmd:    []string{"cmd", "/C", "taskkill /F /IM amazon-ssm-agent.exe"},
 	})
 	require.NoError(t, err)
