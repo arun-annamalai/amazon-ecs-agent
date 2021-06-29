@@ -677,6 +677,14 @@ func TestManagedAgentEvent(t *testing.T) {
 			}
 			assert.False(t, timeout)
 
+			if tc.ShouldBeRunning {
+				containerMap, _ := taskEngine.(*DockerTaskEngine).state.ContainerMapByArn(testTask.Arn)
+				cid := containerMap[testTask.Containers[0].Name].DockerID
+				// Kill the existing container now
+				err = client.ContainerKill(context.TODO(), cid, "SIGKILL")
+				assert.NoError(t, err, "Could not kill container")
+			}
+
 			taskEngine.(*DockerTaskEngine).deleteTask(testTask)
 			_, err = os.Stat(execAgentLogPath)
 			assert.True(t, os.IsNotExist(err), "execAgent log cleanup failed")
