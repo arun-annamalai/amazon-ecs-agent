@@ -886,7 +886,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
 		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
-		Cmd: []string{"taskkill", "/F", "/IM amazon-ssm-agent.exe"},
+		Cmd: []string{"taskkill", "/F", "/IM sleep.exe"},
 	})
 	require.NoError(t, err)
 
