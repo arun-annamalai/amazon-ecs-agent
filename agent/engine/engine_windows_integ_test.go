@@ -895,7 +895,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	})
 	require.NoError(t, err)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(200 * time.Second)
 	top, err := client.ContainerTop(ctx, containerId, nil)
 	seelog.Infof("LOOK HERE1")
 	seelog.Infof("LOOK HERE1")
