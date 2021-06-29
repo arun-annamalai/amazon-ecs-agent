@@ -871,7 +871,8 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
-		Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
+		//Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
+		Cmd: []string{"powershell -command \"TASKKILL /T /F /PID " + pid + "\""},
 	})
 	require.NoError(t, err)
 
@@ -879,7 +880,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 		Detach: true,
 	})
 	require.NoError(t, err)
-	time.Sleep(5)
+	time.Sleep(20)
 	top, err := client.ContainerTop(ctx, containerId, nil)
 	seelog.Infof("LOOK HERE1")
 	seelog.Infof("LOOK HERE1")
