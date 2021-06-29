@@ -766,7 +766,7 @@ func verifyExecCmdAgentExpectedMounts(t *testing.T,
 	}
 	seelog.Infof("LOOK HERE FOR THE DEBUG YOU NEED")
 	for _, m := range inspectState.Mounts {
-		seelog.Infof(m.Source)
+		seelog.Infof("%s", m)
 	}
 	for _, em := range expectedMounts {
 		var found *types.MountPoint
