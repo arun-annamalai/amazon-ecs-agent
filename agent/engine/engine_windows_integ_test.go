@@ -602,6 +602,8 @@ func TestExecCommandAgent(t *testing.T) {
 	// TODO: [ecs-exec] We should be able to wait for cleanup instead of calling deleteTask directly
 	taskEngine.(*DockerTaskEngine).deleteTask(testTask)
 	_, err = os.Stat(execAgentLogPath)
+	seelog.Warnf("-----------")
+	seelog.Warnf("%S", err)
 	assert.True(t, os.IsNotExist(err), "execAgent log cleanup failed")
 	os.RemoveAll(execcmd.ECSAgentExecConfigDir)
 }
