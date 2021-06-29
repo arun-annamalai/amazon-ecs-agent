@@ -866,6 +866,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	create, err := client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
+		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
 		Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
 	})
