@@ -552,7 +552,7 @@ func TestExecCommandAgent(t *testing.T) {
 	defer done()
 
 	testTask := createTestExecCommandAgentTask(testTaskId, testContainerName, sleepFor)
-	execAgentLogPath := filepath.Join("C:\\ProgramData\\Amazon\\exec", testTaskId)
+	execAgentLogPath := filepath.Join("C:\\ProgramData\\Amazon\\ECS\\exec", testTaskId)
 	err = os.MkdirAll(execAgentLogPath, 0644)
 	require.NoError(t, err, "error creating execAgent log file")
 	_, err = os.Stat(execAgentLogPath)
@@ -647,7 +647,7 @@ func TestManagedAgentEvent(t *testing.T) {
 			defer done()
 
 			testTask := createTestExecCommandAgentTask(testTaskId, testContainerName, time.Minute*tc.ManagedAgentLifetime)
-			execAgentLogPath := filepath.Join("C:\\ProgramData\\Amazon\\exec", testTaskId)
+			execAgentLogPath := filepath.Join("C:\\ProgramData\\Amazon\\ECS\\exec", testTaskId)
 			err = os.MkdirAll(execAgentLogPath, 0644)
 			require.NoError(t, err, "error creating execAgent log file")
 			_, err = os.Stat(execAgentLogPath)
