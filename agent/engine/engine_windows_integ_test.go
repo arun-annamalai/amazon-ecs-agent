@@ -877,7 +877,7 @@ func killMockExecCommandAgent(t *testing.T, client *sdkClient.Client, containerI
 	create, err = client.ContainerExecCreate(ctx, containerId, types.ExecConfig{
 		User:   "NT AUTHORITY\\SYSTEM",
 		Detach: true,
-		Cmd:    []string{testExecCommandAgentKillBin, "-pid=" + pid},
+		Cmd:    []string{testExecCommandAgentKillBin},
 	})
 	require.NoError(t, err)
 
