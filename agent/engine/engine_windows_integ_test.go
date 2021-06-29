@@ -539,7 +539,7 @@ func TestExecCommandAgent(t *testing.T) {
 	const (
 		testTaskId        = "exec-command-agent-test-task"
 		testContainerName = "exec-command-agent-test-container"
-		sleepFor          = time.Minute * 2
+		sleepFor          = time.Minute * 10
 	)
 
 	client, err := sdkClient.NewClientWithOpts(sdkClient.WithHost(endpoint), sdkClient.WithVersion(sdkclientfactory.GetDefaultVersion().String()))
