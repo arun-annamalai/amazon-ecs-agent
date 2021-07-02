@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 Param (
-  [string]$Platform="windows2016"
+  [string]$Platform="windows2019"
 )
 
 if ($Platform -like "windows2016") {
