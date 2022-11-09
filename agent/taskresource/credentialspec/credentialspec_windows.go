@@ -18,7 +18,9 @@ package credentialspec
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,6 +48,8 @@ const (
 	// Environment variables to setup resource location
 	envProgramData              = "ProgramData"
 	dockerCredentialSpecDataDir = "docker/credentialspecs"
+	portableCcgVersion          = "1"
+	pluginGUID                  = "{859E1386-BDB4-49E8-85C7-3070B13920E1}"
 )
 
 // CredentialSpecResource is the abstraction for credentialspec resources
@@ -146,14 +150,66 @@ func (cs *CredentialSpecResource) Create() error {
 	return nil
 }
 
+func fillInDomainlessFields(filePath string) error {
+	jsonFile, err := os.Open(filePath)
+	if err != nil {
+		return errors.New("invalid credspec file path")
+	}
+
+	defer jsonFile.Close()
+
+	byteResult, _ := io.ReadAll(jsonFile)
+	var res map[string]interface{}
+	err = json.Unmarshal(byteResult, &res)
+	if err != nil {
+		return err
+	}
+
+	if val, ok := res["ActiveDirectoryConfig"]; ok {
+		activeDirectoryConfig := val.(map[string]interface{})
+		if hostAccountConfigUntyped, ok := activeDirectoryConfig["HostAccountConfig"]; ok {
+			hostAccountConfig := hostAccountConfigUntyped.(map[string]interface{})
+
+			if _, ok := hostAccountConfig["PortableCcgVersion"]; !ok {
+				hostAccountConfig["PortableCcgVersion"] = portableCcgVersion
+			}
+
+			if _, ok := hostAccountConfig["PluginGUID"]; !ok {
+				hostAccountConfig["PluginGUID"] = pluginGUID
+			}
+
+			jsonStr, err := json.Marshal(res)
+			if err != nil {
+				seelog.Error("Invalid credentialspec json")
+			}
+
+			file, err := os.Create(filePath)
+
+			if err != nil {
+				seelog.Errorf("Unable to write to: %s", file)
+				return errors.New("Unable to write new credentialspec")
+			}
+			defer file.Close()
+			file.WriteString(string(jsonStr))
+		}
+	}
+
+	return nil
+}
+
 func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string) error {
 	credSpecSplit := strings.SplitAfterN(credentialspec, "credentialspec:", 2)
+
 	if len(credSpecSplit) != 2 {
 		seelog.Errorf("Invalid credentialspec: %s", credentialspec)
 		return errors.New("invalid credentialspec file specification")
 	}
 	credSpecFile := credSpecSplit[1]
+	credSpecFileSplit := strings.SplitAfterN(credSpecFile, "file://", 2)
 
+	fileName := credSpecFileSplit[1]
+	filePath := fmt.Sprintf("%s\\%s", cs.credentialSpecResourceLocation, fileName)
+	fillInDomainlessFields(filePath)
 	if !strings.HasPrefix(credSpecFile, "file://") {
 		return errors.New("invalid credentialspec file specification")
 	}
@@ -170,6 +226,12 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 		cs.setTerminalReason(err.Error())
 		return err
 	}
+
+	b, err := json.MarshalIndent(iamCredentials, "", "  ")
+	if err != nil {
+		seelog.Errorf("error converting iamCredentials to byte string")
+	}
+	seelog.Errorf(string(b))
 
 	parsedARN, err := arn.Parse(credentialspecS3ARN)
 	if err != nil {
@@ -205,6 +267,7 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 		return err
 	}
 
+	fillInDomainlessFields(localCredSpecFilePath)
 	dockerHostconfigSecOptCredSpec := fmt.Sprintf("credentialspec=file://%s", filepath.Base(localCredSpecFilePath))
 	cs.updateCredSpecMapping(originalCredentialspec, dockerHostconfigSecOptCredSpec)
 
@@ -267,6 +330,7 @@ func (cs *CredentialSpecResource) handleSSMCredentialspecFile(originalCredential
 		cs.setTerminalReason(err.Error())
 		return err
 	}
+	fillInDomainlessFields(localCredSpecFilePath)
 	dockerHostconfigSecOptCredSpec := fmt.Sprintf("credentialspec=file://%s", customCredSpecFileName)
 	cs.updateCredSpecMapping(originalCredentialspec, dockerHostconfigSecOptCredSpec)
 
