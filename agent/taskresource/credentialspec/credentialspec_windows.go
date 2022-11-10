@@ -18,7 +18,9 @@ package credentialspec
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -157,6 +159,21 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 		return errors.New("invalid credentialspec file specification")
 	}
 	credSpecFile := credSpecSplit[1]
+
+	credSpecFileSplit := strings.SplitAfterN(credSpecFile, "file://", 2)
+	fileName := credSpecFileSplit[1]
+	jsonFile, err := os.Open(fileName)
+	if err != nil {
+		return errors.New("invalid credspec file")
+	}
+
+	seelog.Warn("The file is opened successfully")
+	defer jsonFile.Close()
+
+	byteResult, _ := ioutil.ReadAll(jsonFile)
+	var res map[string]interface{}
+	json.Unmarshal([]byte(byteResult), &res)
+	seelog.Warn(res)
 
 	seelog.Warn("testing - credSpecFile: " + credSpecFile)
 
