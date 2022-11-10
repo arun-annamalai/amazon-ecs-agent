@@ -164,8 +164,9 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 
 	seelog.Warn("testing - credentialSpecResourceLocation: " + cs.credentialSpecResourceLocation)
 	fileName := credSpecFileSplit[1]
-	seelog.Warn("testing - filePath: " + dockerCredentialSpecDataDir + "/" + fileName)
-	jsonFile, err := os.Open(dockerCredentialSpecDataDir + "/" + fileName)
+	filePath := fmt.Sprintf("%s\\%s", cs.credentialSpecResourceLocation, fileName)
+	seelog.Warn("testing - filePath: " + filePath)
+	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		return errors.New("invalid credspec file")
 	}
