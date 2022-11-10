@@ -154,6 +154,7 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 	}
 	credSpecFile := credSpecSplit[1]
 
+	seelog.Warn("testing: handleCredentialSpec")
 	if !strings.HasPrefix(credSpecFile, "file://") {
 		return errors.New("invalid credentialspec file specification")
 	}
