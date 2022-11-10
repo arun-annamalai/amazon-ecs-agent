@@ -147,6 +147,7 @@ func (cs *CredentialSpecResource) Create() error {
 }
 
 func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string) error {
+	seelog.Warn("testing: " + credentialspec)
 	credSpecSplit := strings.SplitAfterN(credentialspec, "credentialspec:", 2)
 	if len(credSpecSplit) != 2 {
 		seelog.Errorf("Invalid credentialspec: %s", credentialspec)
