@@ -162,7 +162,7 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 
 	credSpecFileSplit := strings.SplitAfterN(credSpecFile, "file://", 2)
 	fileName := credSpecFileSplit[1]
-	jsonFile, err := os.Open(fileName)
+	jsonFile, err := os.Open(dockerCredentialSpecDataDir + "/" + fileName)
 	if err != nil {
 		return errors.New("invalid credspec file")
 	}
