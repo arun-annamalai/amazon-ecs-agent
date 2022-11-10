@@ -147,20 +147,28 @@ func (cs *CredentialSpecResource) Create() error {
 }
 
 func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string) error {
-	seelog.Warn("testing: " + credentialspec)
+	seelog.Warn("testing - credentialspec: " + credentialspec)
 	credSpecSplit := strings.SplitAfterN(credentialspec, "credentialspec:", 2)
+	seelog.Warn("testing - credSpecSplit[0]: " + credSpecSplit[0])
+	seelog.Warn("testing - credSpecSplit[1]: " + credSpecSplit[1])
+
 	if len(credSpecSplit) != 2 {
 		seelog.Errorf("Invalid credentialspec: %s", credentialspec)
 		return errors.New("invalid credentialspec file specification")
 	}
 	credSpecFile := credSpecSplit[1]
 
-	seelog.Warn("testing: handleCredentialSpec")
+	seelog.Warn("testing - credSpecFile: " + credSpecFile)
+
+	//seelog.Warn("testing - credentialspec: " + credentialspec)
+	//seelog.Warn("testing: handleCredentialSpec")
 	if !strings.HasPrefix(credSpecFile, "file://") {
 		return errors.New("invalid credentialspec file specification")
 	}
 
+	//seelog.Warn("testing - before dockerHostconfigSecOptCredSpec: " + dockerHostconfigSecOptCredSpec)
 	dockerHostconfigSecOptCredSpec := strings.Replace(credentialspec, "credentialspec:", "credentialspec=", 1)
+	seelog.Warn("testing - dockerHostconfigSecOptCredSpec: " + dockerHostconfigSecOptCredSpec)
 	cs.updateCredSpecMapping(credentialspec, dockerHostconfigSecOptCredSpec)
 
 	return nil
