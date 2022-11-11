@@ -168,12 +168,14 @@ func fillInDomainlessFields(filePath string) error {
 	seelog.Warn(res)
 
 	//var hostAccountConfig map[string]interface{}
-	if activeDirectoryConfig, ok := res["ActiveDirectoryConfig"]; ok {
+	if val, ok := res["ActiveDirectoryConfig"]; ok {
 		//do something here
 		seelog.Warn("before: ")
-		seelog.Warn(activeDirectoryConfig)
+		seelog.Warn(val)
 
-		hostAccountConfig := activeDirectoryConfig.(map[string]interface{})
+		activeDirectoryConfig := val.(map[string]interface{})
+
+		hostAccountConfig := activeDirectoryConfig["HostAccountConfig"].(map[string]interface{})
 
 		if _, ok := hostAccountConfig["PortableCcgVersion"]; !ok {
 			hostAccountConfig["PortableCcgVersion"] = portableCcgVersion
