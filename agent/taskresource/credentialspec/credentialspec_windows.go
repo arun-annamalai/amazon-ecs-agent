@@ -171,6 +171,7 @@ func fillInDomainlessFields(filePath string) error {
 	if val, ok := res["ActiveDirectoryConfig"]; ok {
 		//do something here
 		seelog.Warn("before with val: ")
+		seelog.Flush()
 		seelog.Warn(val)
 
 		activeDirectoryConfig := val.(map[string]interface{})
@@ -275,7 +276,6 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 	}
 
 	localCredSpecFilePath := fmt.Sprintf("%s\\s3_%v_%s", cs.credentialSpecResourceLocation, taskArnSplit[length-1], resourceBase)
-	fillInDomainlessFields(localCredSpecFilePath)
 	err = cs.writeS3File(func(file oswrapper.File) error {
 		return s3.DownloadFile(bucket, key, s3DownloadTimeout, file, s3Client)
 	}, localCredSpecFilePath)
