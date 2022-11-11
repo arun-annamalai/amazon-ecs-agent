@@ -48,6 +48,8 @@ const (
 	// Environment variables to setup resource location
 	envProgramData              = "ProgramData"
 	dockerCredentialSpecDataDir = "docker/credentialspecs"
+	portableCcgVersion          = "1"
+	pluginGUID                  = "{859E1386-BDB4-49E8-85C7-3070B13920E1}"
 )
 
 // CredentialSpecResource is the abstraction for credentialspec resources
@@ -148,6 +150,48 @@ func (cs *CredentialSpecResource) Create() error {
 	return nil
 }
 
+func fillInDomainlessFields(filePath string) error {
+	// Read in JSON from filePath
+	// if "hostAccountConfig" key is present
+	// populate "hostAccountConfig.PluginVersion" and "hostAccountConfig.PluginGUID"
+	jsonFile, err := os.Open(filePath)
+	if err != nil {
+		return errors.New("invalid credspec file path")
+	}
+
+	seelog.Warn("The file is opened successfully")
+	defer jsonFile.Close()
+
+	byteResult, _ := ioutil.ReadAll(jsonFile)
+	var res map[string]interface{}
+	json.Unmarshal([]byte(byteResult), &res)
+	seelog.Warn(res)
+
+	//var hostAccountConfig map[string]interface{}
+	if activeDirectoryConfig, ok := res["ActiveDirectoryConfig"]; ok {
+		//do something here
+		seelog.Warn("before: ")
+		seelog.Warn(activeDirectoryConfig)
+
+		hostAccountConfig := activeDirectoryConfig.(map[string]interface{})
+
+		if _, ok := hostAccountConfig["PortableCcgVersion"]; !ok {
+			hostAccountConfig["PortableCcgVersion"] = portableCcgVersion
+		}
+
+		if _, ok := hostAccountConfig["PluginGUID"]; !ok {
+			hostAccountConfig["PluginGUID"] = pluginGUID
+		}
+
+		seelog.Warn("after: ")
+		seelog.Warn(activeDirectoryConfig)
+	}
+
+	seelog.Warn(res)
+
+	return nil
+}
+
 func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string) error {
 	seelog.Warn("testing - credentialspec: " + credentialspec)
 	credSpecSplit := strings.SplitAfterN(credentialspec, "credentialspec:", 2)
@@ -165,19 +209,9 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 	seelog.Warn("testing - credentialSpecResourceLocation: " + cs.credentialSpecResourceLocation)
 	fileName := credSpecFileSplit[1]
 	filePath := fmt.Sprintf("%s\\%s", cs.credentialSpecResourceLocation, fileName)
-	seelog.Warn("testing - filePath: " + filePath)
-	jsonFile, err := os.Open(filePath)
-	if err != nil {
-		return errors.New("invalid credspec file")
-	}
+	fillInDomainlessFields(filePath)
 
-	seelog.Warn("The file is opened successfully")
-	defer jsonFile.Close()
-
-	byteResult, _ := ioutil.ReadAll(jsonFile)
-	var res map[string]interface{}
-	json.Unmarshal([]byte(byteResult), &res)
-	seelog.Warn(res)
+	seelog.Warn("testing a - filePath: " + filePath)
 
 	seelog.Warn("testing - credSpecFile: " + credSpecFile)
 
