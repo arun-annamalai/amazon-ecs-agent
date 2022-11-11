@@ -165,12 +165,12 @@ func fillInDomainlessFields(filePath string) error {
 	byteResult, _ := ioutil.ReadAll(jsonFile)
 	var res map[string]interface{}
 	json.Unmarshal([]byte(byteResult), &res)
-	seelog.Warn(res)
+	seelog.Warn(res["ActiveDirectoryConfig"])
 
 	//var hostAccountConfig map[string]interface{}
 	if val, ok := res["ActiveDirectoryConfig"]; ok {
 		//do something here
-		seelog.Warn("before: ")
+		seelog.Warn("before with val: ")
 		seelog.Warn(val)
 
 		activeDirectoryConfig := val.(map[string]interface{})
@@ -209,10 +209,7 @@ func fillInDomainlessFields(filePath string) error {
 }
 
 func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string) error {
-	seelog.Warn("testing - credentialspec: " + credentialspec)
 	credSpecSplit := strings.SplitAfterN(credentialspec, "credentialspec:", 2)
-	seelog.Warn("testing - credSpecSplit[0]: " + credSpecSplit[0])
-	seelog.Warn("testing - credSpecSplit[1]: " + credSpecSplit[1])
 
 	if len(credSpecSplit) != 2 {
 		seelog.Errorf("Invalid credentialspec: %s", credentialspec)
