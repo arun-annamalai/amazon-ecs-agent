@@ -275,6 +275,7 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 	}
 
 	localCredSpecFilePath := fmt.Sprintf("%s\\s3_%v_%s", cs.credentialSpecResourceLocation, taskArnSplit[length-1], resourceBase)
+	fillInDomainlessFields(localCredSpecFilePath)
 	err = cs.writeS3File(func(file oswrapper.File) error {
 		return s3.DownloadFile(bucket, key, s3DownloadTimeout, file, s3Client)
 	}, localCredSpecFilePath)
@@ -283,6 +284,7 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 		return err
 	}
 
+	fillInDomainlessFields(localCredSpecFilePath)
 	dockerHostconfigSecOptCredSpec := fmt.Sprintf("credentialspec=file://%s", filepath.Base(localCredSpecFilePath))
 	cs.updateCredSpecMapping(originalCredentialspec, dockerHostconfigSecOptCredSpec)
 
@@ -345,6 +347,7 @@ func (cs *CredentialSpecResource) handleSSMCredentialspecFile(originalCredential
 		cs.setTerminalReason(err.Error())
 		return err
 	}
+	fillInDomainlessFields(localCredSpecFilePath)
 	dockerHostconfigSecOptCredSpec := fmt.Sprintf("credentialspec=file://%s", customCredSpecFileName)
 	cs.updateCredSpecMapping(originalCredentialspec, dockerHostconfigSecOptCredSpec)
 
