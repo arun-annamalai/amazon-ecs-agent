@@ -187,7 +187,21 @@ func fillInDomainlessFields(filePath string) error {
 		seelog.Warn(activeDirectoryConfig)
 	}
 
-	seelog.Warn(res)
+	jsonStr, err := json.Marshal(res)
+	if err != nil {
+		seelog.Error("Invalid json")
+	}
+
+	file, err := os.Create(filePath)
+
+	if err != nil {
+		seelog.Errorf("Unable to write to: %s", file)
+		return errors.New("Unable to write to")
+	}
+	defer file.Close()
+
+	seelog.Warn("new file: " + string(jsonStr))
+	file.WriteString(string(jsonStr))
 
 	return nil
 }
