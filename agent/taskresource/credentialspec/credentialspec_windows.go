@@ -173,6 +173,7 @@ func fillInDomainlessFields(filePath string) error {
 		seelog.Warn("before with val: ")
 		seelog.Flush()
 		seelog.Warn(val)
+		seelog.Flush()
 
 		activeDirectoryConfig := val.(map[string]interface{})
 
