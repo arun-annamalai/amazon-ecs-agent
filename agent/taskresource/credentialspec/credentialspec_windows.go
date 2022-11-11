@@ -151,61 +151,45 @@ func (cs *CredentialSpecResource) Create() error {
 }
 
 func fillInDomainlessFields(filePath string) error {
-	// Read in JSON from filePath
-	// if "hostAccountConfig" key is present
-	// populate "hostAccountConfig.PluginVersion" and "hostAccountConfig.PluginGUID"
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
 		return errors.New("invalid credspec file path")
 	}
 
-	seelog.Warn("The file is opened successfully")
 	defer jsonFile.Close()
 
 	byteResult, _ := ioutil.ReadAll(jsonFile)
 	var res map[string]interface{}
 	json.Unmarshal([]byte(byteResult), &res)
-	seelog.Warn(res["ActiveDirectoryConfig"])
 
-	//var hostAccountConfig map[string]interface{}
 	if val, ok := res["ActiveDirectoryConfig"]; ok {
-		//do something here
-		seelog.Warn("before with val: ")
-		seelog.Flush()
-		seelog.Warn(val)
-		seelog.Flush()
-
 		activeDirectoryConfig := val.(map[string]interface{})
+		if isDomainless, yes := activeDirectoryConfig["HostAccountConfig"]; yes {
+			hostAccountConfig := isDomainless.(map[string]interface{})
 
-		hostAccountConfig := activeDirectoryConfig["HostAccountConfig"].(map[string]interface{})
+			if _, ok := hostAccountConfig["PortableCcgVersion"]; !ok {
+				hostAccountConfig["PortableCcgVersion"] = portableCcgVersion
+			}
 
-		if _, ok := hostAccountConfig["PortableCcgVersion"]; !ok {
-			hostAccountConfig["PortableCcgVersion"] = portableCcgVersion
+			if _, ok := hostAccountConfig["PluginGUID"]; !ok {
+				hostAccountConfig["PluginGUID"] = pluginGUID
+			}
+
+			jsonStr, err := json.Marshal(res)
+			if err != nil {
+				seelog.Error("Invalid credentialspec json")
+			}
+
+			file, err := os.Create(filePath)
+
+			if err != nil {
+				seelog.Errorf("Unable to write to: %s", file)
+				return errors.New("Unable to write new credentialspec")
+			}
+			defer file.Close()
+			file.WriteString(string(jsonStr))
 		}
-
-		if _, ok := hostAccountConfig["PluginGUID"]; !ok {
-			hostAccountConfig["PluginGUID"] = pluginGUID
-		}
-
-		seelog.Warn("after: ")
-		seelog.Warn(activeDirectoryConfig)
 	}
-
-	jsonStr, err := json.Marshal(res)
-	if err != nil {
-		seelog.Error("Invalid json")
-	}
-
-	file, err := os.Create(filePath)
-
-	if err != nil {
-		seelog.Errorf("Unable to write to: %s", file)
-		return errors.New("Unable to write to")
-	}
-	defer file.Close()
-
-	seelog.Warn("new file: " + string(jsonStr))
-	file.WriteString(string(jsonStr))
 
 	return nil
 }
@@ -221,24 +205,14 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 
 	credSpecFileSplit := strings.SplitAfterN(credSpecFile, "file://", 2)
 
-	seelog.Warn("testing - credentialSpecResourceLocation: " + cs.credentialSpecResourceLocation)
 	fileName := credSpecFileSplit[1]
 	filePath := fmt.Sprintf("%s\\%s", cs.credentialSpecResourceLocation, fileName)
 	fillInDomainlessFields(filePath)
-
-	seelog.Warn("testing a - filePath: " + filePath)
-
-	seelog.Warn("testing - credSpecFile: " + credSpecFile)
-
-	//seelog.Warn("testing - credentialspec: " + credentialspec)
-	//seelog.Warn("testing: handleCredentialSpec")
 	if !strings.HasPrefix(credSpecFile, "file://") {
 		return errors.New("invalid credentialspec file specification")
 	}
 
-	//seelog.Warn("testing - before dockerHostconfigSecOptCredSpec: " + dockerHostconfigSecOptCredSpec)
 	dockerHostconfigSecOptCredSpec := strings.Replace(credentialspec, "credentialspec:", "credentialspec=", 1)
-	seelog.Warn("testing - dockerHostconfigSecOptCredSpec: " + dockerHostconfigSecOptCredSpec)
 	cs.updateCredSpecMapping(credentialspec, dockerHostconfigSecOptCredSpec)
 
 	return nil
