@@ -225,6 +225,12 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 		return err
 	}
 
+	b, err := json.MarshalIndent(iamCredentials, "", "  ")
+	if err != nil {
+		seelog.Errorf("cannot print iamCredentials")
+	}
+	seelog.Errorf(string(b))
+
 	parsedARN, err := arn.Parse(credentialspecS3ARN)
 	if err != nil {
 		cs.setTerminalReason(err.Error())
