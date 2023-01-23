@@ -170,6 +170,8 @@ func newAgent(blackholeEC2Metadata bool, acceptInsecureCert *bool) (agent, error
 		cancel()
 		return nil, err
 	}
+	seelog.Info("here")
+	seelog.Infof("very end cfg.GMSACapable: %v", cfg.GMSACapable)
 	cfg.AcceptInsecureCert = aws.BoolValue(acceptInsecureCert)
 	if cfg.AcceptInsecureCert {
 		seelog.Warn("SSL certificate verification disabled. This is not recommended.")

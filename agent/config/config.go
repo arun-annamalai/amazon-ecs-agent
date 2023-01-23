@@ -197,16 +197,30 @@ var (
 func (cfg *Config) Merge(rhs Config) *Config {
 	left := reflect.ValueOf(cfg).Elem()
 	right := reflect.ValueOf(&rhs).Elem()
-
+	printStuff := false
 	for i := 0; i < left.NumField(); i++ {
 		leftField := left.Field(i)
+		varName := left.Type().Field(i).Name
+		if varName == "GMSACapable" {
+			printStuff = true
+		} else {
+			printStuff = false
+		}
 		switch leftField.Interface().(type) {
 		case BooleanDefaultFalse, BooleanDefaultTrue:
 			str, _ := json.Marshal(reflect.ValueOf(leftField.Interface()).Interface())
+			if printStuff {
+				seelog.Infof("comparing %v in here", varName)
+				seelog.Infof("str %v", string(str))
+			}
 			if string(str) == "null" {
 				leftField.Set(reflect.ValueOf(right.Field(i).Interface()))
 			}
 		default:
+			if printStuff {
+				seelog.Infof("comparing %v in here", varName)
+				seelog.Infof("utils.ZeroOrNil(leftField.Interface()) %v", utils.ZeroOrNil(leftField.Interface()))
+			}
 			if utils.ZeroOrNil(leftField.Interface()) {
 				leftField.Set(reflect.ValueOf(right.Field(i).Interface()))
 			}
@@ -229,6 +243,7 @@ func NewConfig(ec2client ec2.EC2MetadataClient) (*Config, error) {
 	}
 	config := &envConfig
 
+	seelog.Infof("after env cfg.GMSACapable: %v", config.GMSACapable)
 	if config.External.Enabled() {
 		if config.AWSRegion == "" {
 			return nil, errors.New("AWS_DEFAULT_REGION has to be set when running on external capacity")
@@ -248,7 +263,11 @@ func NewConfig(ec2client ec2.EC2MetadataClient) (*Config, error) {
 	}
 	config.Merge(fcfg)
 
+	seelog.Infof("after file cfg.GMSACapable: %v", config.GMSACapable)
+
 	config.Merge(userDataConfig(ec2client))
+
+	seelog.Infof("after userdata cfg.GMSACapable: %v", config.GMSACapable)
 
 	if config.AWSRegion == "" {
 		if config.NoIID {
@@ -263,6 +282,7 @@ func NewConfig(ec2client ec2.EC2MetadataClient) (*Config, error) {
 			config.Merge(ec2MetadataConfig(ec2client))
 		}
 	}
+	seelog.Infof("after ec2MetadataConfig cfg.GMSACapable: %v", config.GMSACapable)
 
 	return config, config.mergeDefaultConfig(errs)
 }
@@ -525,6 +545,7 @@ func environmentConfig() (Config, error) {
 	if len(errs) > 0 {
 		err = apierrors.NewMultiError(errs...)
 	}
+	seelog.Warn("inside environmentConfig")
 	return Config{
 		Cluster:                             os.Getenv("ECS_CLUSTER"),
 		APIEndpoint:                         os.Getenv("ECS_BACKEND_HOST"),
