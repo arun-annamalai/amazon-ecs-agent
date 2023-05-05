@@ -199,6 +199,8 @@ type Container struct {
 	Overrides ContainerOverrides `json:"overrides"`
 	// DockerConfig is the configuration used to create the container
 	DockerConfig DockerConfig `json:"dockerConfig"`
+	// CredentialSpecs is the configuration used for configuring gMSA authentication for the container
+	CredentialSpecs []string `json:"credentialSpecs,omitempty"`
 	// RegistryAuthentication is the auth data used to pull image
 	RegistryAuthentication *RegistryAuthenticationData `json:"registryAuthentication"`
 	// HealthCheckType is the mechanism to use for the container health check
@@ -1350,6 +1352,22 @@ func (c *Container) GetCredentialSpec() (string, error) {
 }
 
 func (c *Container) getCredentialSpec() (string, error) {
+	credSpecHostConfig, err := c.getCredentialSpecFromHostConfig()
+	credSpecCredentialSpecsContainerField, err2 := c.getCredentialSpecFromCredentialSpecsContainerField()
+
+	// Prefer to use CredentialSpecsContainerField because of the upcoming docker runtime deprecation
+	if err2 == nil {
+		return credSpecCredentialSpecsContainerField, nil
+	}
+
+	if err == nil {
+		return credSpecHostConfig, nil
+	}
+
+	return "", errors.New("unable to obtain credentialspec from both hostConfig and credentialSpecs")
+}
+
+func (c *Container) getCredentialSpecFromHostConfig() (string, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -1366,6 +1384,23 @@ func (c *Container) getCredentialSpec() (string, error) {
 	for _, opt := range hostConfig.SecurityOpt {
 		if strings.HasPrefix(opt, "credentialspec") {
 			return opt, nil
+		}
+	}
+
+	return "", errors.New("unable to obtain credentialspec")
+}
+
+func (c *Container) getCredentialSpecFromCredentialSpecsContainerField() (string, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if c.CredentialSpecs == nil || len(c.CredentialSpecs) == 0 {
+		return "", errors.New("empty container credentialSpecs")
+	}
+
+	for _, credentialSpec := range c.CredentialSpecs {
+		if strings.HasPrefix(credentialSpec, "credentialspec") || strings.HasPrefix(credentialSpec, "credentialspecdomainless") {
+			return credentialSpec, nil
 		}
 	}
 
