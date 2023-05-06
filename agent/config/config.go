@@ -55,7 +55,7 @@ const (
 
 	// DefaultTaskCleanupWaitDuration specifies the default value for task cleanup duration. It is used to
 	// clean up task's containers.
-	DefaultTaskCleanupWaitDuration = 3 * time.Hour
+	DefaultTaskCleanupWaitDuration = 10 * time.Second
 
 	// DefaultPollingMetricsWaitDuration specifies the default value for polling metrics wait duration
 	// This is only used when PollMetrics is set to true

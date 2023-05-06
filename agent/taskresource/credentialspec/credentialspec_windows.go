@@ -18,6 +18,7 @@ package credentialspec
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,8 +33,10 @@ import (
 	"github.com/aws/amazon-ecs-agent/agent/utils/ioutilwrapper"
 	"github.com/aws/amazon-ecs-agent/agent/utils/oswrapper"
 	"github.com/aws/aws-sdk-go/aws/arn"
+
 	"github.com/cihub/seelog"
 	"github.com/pkg/errors"
+	"golang.org/x/sys/windows/registry"
 )
 
 const (
@@ -46,7 +49,15 @@ const (
 	// Environment variables to setup resource location
 	envProgramData              = "ProgramData"
 	dockerCredentialSpecDataDir = "docker/credentialspecs"
+	servicesRegistryKeyRoot     = `System\CurrentControlSet\Services`
+	taskCredentialsRegistryKey  = `AmazonECSCCGPlugin3`
+	RegKeyPathFormat            = `HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\AmazonECSCCGPlugin3\%s`
 )
+
+type PluginInput struct {
+	CredentialArn string `json:"credentialArn,omitempty"`
+	RegKeyPath    string `json:"regKeyPath,omitempty"`
+}
 
 // CredentialSpecResource is the abstraction for credentialspec resources
 type CredentialSpecResource struct {
@@ -92,16 +103,24 @@ func (cs *CredentialSpecResource) Create() error {
 	var err error
 	var iamCredentials credentials.IAMRoleCredentials
 
+	domainlessGMSATask := false
 	executionCredentials, ok := cs.credentialsManager.GetTaskCredentials(cs.getExecutionCredentialsID())
 	if ok {
 		iamCredentials = executionCredentials.GetIAMRoleCredentials()
+		seelog.Errorf("iamCredentials set successfully")
+	} else {
+		seelog.Errorf("NO iamCredentials")
 	}
 
 	for credSpecStr := range cs.credentialSpecContainerMap {
-		credSpecSplit := strings.SplitAfterN(credSpecStr, "credentialspec:", 2)
+		credSpecSplit := strings.SplitAfterN(credSpecStr, ":", 2)
 		if len(credSpecSplit) != 2 {
 			seelog.Errorf("Invalid credentialspec: %s", credSpecStr)
 			continue
+		}
+		credSpecPrefix := credSpecSplit[0]
+		if credSpecPrefix == "credentialspecdomainless:" {
+			domainlessGMSATask = true
 		}
 		credSpecValue := credSpecSplit[1]
 
@@ -143,11 +162,24 @@ func (cs *CredentialSpecResource) Create() error {
 		}
 	}
 
+	seelog.Errorf("Before set credentials successfully for windowsregistrykey")
+	if domainlessGMSATask {
+		// The domainless gMSA Windows Plugin needs the execution role credentials to pull customer secrets
+		err = setTaskExecutionCredentialsRegKeys(iamCredentials, cs.CredentialSpecResourceCommon.taskARN)
+		if err != nil {
+			cs.setTerminalReason(err.Error())
+			return err
+		}
+		seelog.Errorf("Set credentials successfully for windowsregistrykey")
+	}
+
 	return nil
 }
 
 func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string) error {
-	credSpecSplit := strings.SplitAfterN(credentialspec, "credentialspec:", 2)
+	var err error
+
+	credSpecSplit := strings.SplitAfterN(credentialspec, ":", 2)
 	if len(credSpecSplit) != 2 {
 		seelog.Errorf("Invalid credentialspec: %s", credentialspec)
 		return errors.New("invalid credentialspec file specification")
@@ -158,7 +190,22 @@ func (cs *CredentialSpecResource) handleCredentialspecFile(credentialspec string
 		return errors.New("invalid credentialspec file specification")
 	}
 
-	dockerHostconfigSecOptCredSpec := strings.Replace(credentialspec, "credentialspec:", "credentialspec=", 1)
+	if strings.HasPrefix(credentialspec, "credentialspecdomainless:") {
+		// We need to copy the customers local file in order to avoid modifying their credentialspec
+		credSpecFile, err = cs.copyCredentialSpecLocalFile(credentialspec)
+		if err != nil {
+			return err
+		}
+
+		// Fill in appropriate domainless gMSA fields
+		err = fillInDomainlessFields(filepath.Join(cs.credentialSpecResourceLocation, credSpecFile), cs.taskARN)
+		if err != nil {
+			cs.setTerminalReason(err.Error())
+			return err
+		}
+	}
+
+	dockerHostconfigSecOptCredSpec := "credentialspec=" + credSpecFile
 	cs.updateCredSpecMapping(credentialspec, dockerHostconfigSecOptCredSpec)
 
 	return nil
@@ -200,6 +247,12 @@ func (cs *CredentialSpecResource) handleS3CredentialspecFile(originalCredentials
 	err = cs.writeS3File(func(file oswrapper.File) error {
 		return s3.DownloadFile(bucket, key, s3DownloadTimeout, file, s3Client)
 	}, localCredSpecFilePath)
+	if err != nil {
+		cs.setTerminalReason(err.Error())
+		return err
+	}
+
+	err = handleDomainlessGMSACredSpec(originalCredentialspec, localCredSpecFilePath, cs.taskARN)
 	if err != nil {
 		cs.setTerminalReason(err.Error())
 		return err
@@ -267,6 +320,13 @@ func (cs *CredentialSpecResource) handleSSMCredentialspecFile(originalCredential
 		cs.setTerminalReason(err.Error())
 		return err
 	}
+
+	err = handleDomainlessGMSACredSpec(originalCredentialspec, localCredSpecFilePath, cs.taskARN)
+	if err != nil {
+		cs.setTerminalReason(err.Error())
+		return err
+	}
+
 	dockerHostconfigSecOptCredSpec := fmt.Sprintf("credentialspec=file://%s", customCredSpecFileName)
 	cs.updateCredSpecMapping(originalCredentialspec, dockerHostconfigSecOptCredSpec)
 
@@ -315,6 +375,7 @@ func (cs *CredentialSpecResource) updateCredSpecMapping(credSpecInput, targetCre
 // Cleanup removes the credentialspec created for the task
 func (cs *CredentialSpecResource) Cleanup() error {
 	cs.clearCredentialSpec()
+	cs.deleteTaskExecutionCredentialsRegKeys()
 	return nil
 }
 
@@ -332,7 +393,7 @@ func (cs *CredentialSpecResource) clearCredentialSpec() {
 			continue
 		}
 		// Split credentialspec to obtain local file-name
-		credSpecSplit := strings.SplitAfterN(value, "credentialspec=file://", 2)
+		credSpecSplit := strings.SplitAfterN(value, "file://", 2)
 		if len(credSpecSplit) != 2 {
 			seelog.Warnf("Unable to parse target credentialspec: %s", value)
 			continue
@@ -346,6 +407,24 @@ func (cs *CredentialSpecResource) clearCredentialSpec() {
 
 		delete(cs.CredSpecMap, key)
 	}
+}
+
+func (cs *CredentialSpecResource) deleteTaskExecutionCredentialsRegKeys() {
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	pathToTaskCredentialsRegistryKey := servicesRegistryKeyRoot + "\\" + taskCredentialsRegistryKey
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, pathToTaskCredentialsRegistryKey, registry.ALL_ACCESS)
+	if err != nil {
+		seelog.Errorf("Error opening %s key to delete: %s", pathToTaskCredentialsRegistryKey, err)
+	}
+	defer k.Close()
+
+	err = registry.DeleteKey(k, cs.taskARN)
+	if err != nil {
+		seelog.Errorf("Error deleting %s key: %s", pathToTaskCredentialsRegistryKey+"\\"+cs.taskARN, err)
+	}
+	seelog.Infof("Deleted up Task Execution Credential Registry key for task: %s", cs.taskARN)
 }
 
 func (cs *CredentialSpecResource) setCredentialSpecResourceLocation() error {
@@ -375,4 +454,158 @@ func (cs *CredentialSpecResource) MarshallPlatformSpecificFields(credentialSpecR
 
 func (cs *CredentialSpecResource) UnmarshallPlatformSpecificFields(credentialSpecResourceJSON CredentialSpecResourceJSON) {
 	return
+}
+
+// This function makes a copy of the local credential spec file to avoid modifying customer resources
+// Example Usage:
+// copyCredentialSpecLocalFile("credentialspecdomainless:file://gmsa-cred.json") - single file
+// copyCredentialSpecLocalFile("credentialspecdomainless:file://gmsa-dir\gmsa-cred.json") - Relative path with Windows file path separators
+func (cs *CredentialSpecResource) copyCredentialSpecLocalFile(credentialspec string) (string, error) {
+	relativeFilePath := strings.TrimPrefix(credentialspec, "credentialspecdomainless:file://")
+	dir, originalFileName := filepath.Split(relativeFilePath)
+
+	// Generate unique filename
+	taskId, err := getTaskIDfromARN(cs.taskARN)
+	if err != nil {
+		return "", err
+	}
+	containerName := cs.credentialSpecContainerMap[credentialspec]
+	copiedFileName := fmt.Sprintf("%s_%s_%s", taskId, containerName, originalFileName)
+
+	// Copy new file in same directory
+	// Read all the contents of the original file
+	bytes, err := os.ReadFile(filepath.Join(cs.credentialSpecResourceLocation, dir, originalFileName))
+	if err != nil {
+		return "", err
+	}
+
+	// Copy all the contents to the destination file
+	err = os.WriteFile(filepath.Join(cs.credentialSpecResourceLocation, dir, copiedFileName), bytes, 0777)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("file://%s", filepath.Join(dir, copiedFileName)), nil
+}
+
+func setTaskExecutionCredentialsRegKeys(taskCredentials credentials.IAMRoleCredentials, taskArn string) error {
+	if taskCredentials == (credentials.IAMRoleCredentials{}) {
+		err := errors.New("Unable to find execution role credentials while setting registry key")
+		return err
+	}
+
+	seelog.Errorf("SetTaskExecutionCredentialsRegKey")
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, servicesRegistryKeyRoot, registry.WRITE)
+	if err != nil {
+		seelog.Errorf("Error opening %s key: %s", servicesRegistryKeyRoot, err)
+		return err
+	}
+	defer k.Close()
+
+	k2, _, err := registry.CreateKey(k, taskCredentialsRegistryKey, registry.WRITE)
+	if err != nil {
+		seelog.Errorf("Error creating %s key: %s", taskCredentialsRegistryKey, err)
+		return err
+	}
+	defer k2.Close()
+
+	k3, _, err := registry.CreateKey(k2, taskArn, registry.WRITE)
+	if err != nil {
+		seelog.Errorf("Error creating %s key: %s", taskArn, err)
+		return err
+	}
+	defer k3.Close()
+
+	err = k3.SetStringValue("AKID", taskCredentials.AccessKeyID)
+	if err != nil {
+		seelog.Errorf("Error creating AKID child value for task %s:%s", taskArn, err)
+		return err
+	}
+	err = k3.SetStringValue("SKID", taskCredentials.SecretAccessKey)
+	if err != nil {
+		seelog.Errorf("Error creating SKID child value for task %s:%s", taskArn, err)
+		return err
+	}
+	err = k3.SetStringValue("SESSIONTOKEN", taskCredentials.SessionToken)
+	if err != nil {
+		seelog.Errorf("Error creating SESSIONTOKEN child value for task %s:%s", taskArn, err)
+		return err
+	}
+
+	return nil
+}
+
+func handleDomainlessGMSACredSpec(originalCredSpec, localCredSpecFilePath, taskARN string) error {
+	// Exit early for non domainless gMSA cred specs
+	if !strings.HasPrefix(originalCredSpec, "credentialspecdomainless:") {
+		return nil
+	}
+
+	err := fillInDomainlessFields(localCredSpecFilePath, taskARN)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func fillInDomainlessFields(filePath, taskARN string) error {
+	byteResult, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	var credSpec map[string]interface{}
+	err = json.Unmarshal(byteResult, &credSpec)
+	if err != nil {
+		return err
+	}
+
+	if activeDirectoryConfigUntyped, ok := credSpec["ActiveDirectoryConfig"]; ok {
+		activeDirectoryConfig := activeDirectoryConfigUntyped.(map[string]interface{})
+		if hostAccountConfigUntyped, ok2 := activeDirectoryConfig["HostAccountConfig"]; ok2 {
+			hostAccountConfig := hostAccountConfigUntyped.(map[string]interface{})
+			if pluginInputString, ok3 := hostAccountConfig["PluginInput"]; ok3 {
+				var pluginInputParsed PluginInput
+				pluginInputString2 := pluginInputString.(string)
+				err = json.Unmarshal([]byte(pluginInputString2), &pluginInputParsed)
+				if err != nil {
+					return err
+				}
+
+				pluginInputParsed.RegKeyPath = fmt.Sprintf(RegKeyPathFormat, taskARN)
+
+				pluginInputBytes, err := json.Marshal(pluginInputParsed)
+				if err != nil {
+					return err
+				}
+
+				hostAccountConfig["PluginInput"] = string(pluginInputBytes)
+
+				jsonStr, err := json.Marshal(credSpec)
+				if err != nil {
+					return err
+				}
+
+				// TODO: use os.WriteFile()
+				file, err := os.Create(filePath)
+
+				if err != nil {
+					return err
+				}
+				defer file.Close()
+				file.WriteString(string(jsonStr))
+			}
+		}
+	}
+
+	return nil
+}
+
+func getTaskIDfromARN(taskARN string) (string, error) {
+	taskArnSplit := strings.Split(taskARN, "/")
+	length := len(taskArnSplit)
+	if length < 2 {
+		return "", errors.New("Failed to retrieve taskId from taskArn.")
+	}
+
+	return taskArnSplit[length-1], nil
 }
