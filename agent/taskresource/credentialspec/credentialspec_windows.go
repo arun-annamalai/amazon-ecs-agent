@@ -165,7 +165,7 @@ func (cs *CredentialSpecResource) Create() error {
 	seelog.Errorf("Before set credentials successfully for windowsregistrykey")
 	if domainlessGMSATask {
 		// The domainless gMSA Windows Plugin needs the execution role credentials to pull customer secrets
-		err = setTaskExecutionCredentialsRegKeys(iamCredentials, cs.CredentialSpecResourceCommon.taskARN)
+		err = SetTaskExecutionCredentialsRegKeys(iamCredentials, cs.CredentialSpecResourceCommon.taskARN)
 		if err != nil {
 			cs.setTerminalReason(err.Error())
 			return err
@@ -488,7 +488,7 @@ func (cs *CredentialSpecResource) copyCredentialSpecLocalFile(credentialspec str
 	return fmt.Sprintf("file://%s", filepath.Join(dir, copiedFileName)), nil
 }
 
-func setTaskExecutionCredentialsRegKeys(taskCredentials credentials.IAMRoleCredentials, taskArn string) error {
+func SetTaskExecutionCredentialsRegKeys(taskCredentials credentials.IAMRoleCredentials, taskArn string) error {
 	if taskCredentials == (credentials.IAMRoleCredentials{}) {
 		err := errors.New("Unable to find execution role credentials while setting registry key")
 		return err

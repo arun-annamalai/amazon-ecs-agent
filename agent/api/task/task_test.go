@@ -4671,7 +4671,7 @@ func TestRequiresCredentialSpecResource(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedOutput, tc.task.requiresCredentialSpecResource())
+			assert.Equal(t, tc.expectedOutput, tc.task.RequiresCredentialSpecResource())
 		})
 	}
 

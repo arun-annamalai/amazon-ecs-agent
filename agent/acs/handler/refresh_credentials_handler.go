@@ -145,10 +145,11 @@ func (refreshHandler *refreshCredentialsHandler) handleSingleMessage(message *ec
 	if !validRoleType(roleType) {
 		seelog.Errorf("Unknown RoleType for task in credentials message, roleType: %s arn: %s, messageId: %s", roleType, taskArn, messageId)
 	} else {
+		iamRoleCredentials := credentials.IAMRoleCredentialsFromACS(message.RoleCredentials, roleType)
 		err = refreshHandler.credentialsManager.SetTaskCredentials(
 			&(credentials.TaskIAMRoleCredentials{
 				ARN:                taskArn,
-				IAMRoleCredentials: credentials.IAMRoleCredentialsFromACS(message.RoleCredentials, roleType),
+				IAMRoleCredentials: iamRoleCredentials,
 			}))
 		if err != nil {
 			seelog.Errorf("Unable to update credentials for task, err: %v messageId: %s", err, messageId)
@@ -160,6 +161,10 @@ func (refreshHandler *refreshCredentialsHandler) handleSingleMessage(message *ec
 		}
 		if roleType == credentials.ExecutionRoleType {
 			task.SetExecutionRoleCredentialsID(aws.StringValue(message.RoleCredentials.CredentialsId))
+			// Refresh domainless gMSA plugin credentials
+			if task.RequiresCredentialSpecResource() {
+				task.SetGMSAExecutionRoleCredentials(iamRoleCredentials)
+			}
 		}
 	}
 

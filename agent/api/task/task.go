@@ -423,7 +423,7 @@ func (task *Task) PostUnmarshalTask(cfg *config.Config,
 		return err
 	}
 
-	if task.requiresCredentialSpecResource() {
+	if task.RequiresCredentialSpecResource() {
 		if err := task.initializeCredentialSpecResource(cfg, credentialsManager, resourceFields); err != nil {
 			logger.Error("Could not initialize credentialspec resource", logger.Fields{
 				field.TaskID: task.GetID(),
@@ -2979,9 +2979,9 @@ func (task *Task) AddResource(resourceType string, resource taskresource.TaskRes
 	task.ResourcesMapUnsafe[resourceType] = append(task.ResourcesMapUnsafe[resourceType], resource)
 }
 
-// requiresCredentialSpecResource returns true if at least one container in the task
+// RequiresCredentialSpecResource returns true if at least one container in the task
 // needs a valid credentialspec resource
-func (task *Task) requiresCredentialSpecResource() bool {
+func (task *Task) RequiresCredentialSpecResource() bool {
 	for _, container := range task.Containers {
 		if container.RequiresCredentialSpec() {
 			return true
