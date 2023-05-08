@@ -839,3 +839,31 @@ func TestGetTargetMappingErr(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, targetCredSpec)
 }
+
+func TestWriteCredentialSpecErr(t *testing.T) {
+	writeToFile = func(string, []byte, os.FileMode) error {
+		return nil
+	}
+	defer func() {
+		writeToFile = os.WriteFile
+	}()
+
+	testCases := []struct {
+		name                string
+		credSpec            map[string]interface{}
+		expectedErrorString string
+	}{
+		{
+			name:                "invalid_ActiveDirectoryConfig",
+			credSpec:            map[string]interface{}{"wrong_key": 10},
+			expectedErrorString: "Unable to parse ActiveDirectoryConfig from credential spec",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := writeCredentialSpec(tc.credSpec, "", "")
+			assert.EqualError(t, err, tc.expectedErrorString)
+		})
+	}
+}
