@@ -73,9 +73,9 @@ func (task *Task) dockerCPUShares(containerCPU uint) int64 {
 	return int64(containerCPU)
 }
 
-// requiresCredentialSpecResource returns true if at least one container in the task
+// requiresAnyCredentialSpecResource returns true if at least one container in the task
 // needs a valid credentialspec resource
-func (task *Task) requiresCredentialSpecResource() bool {
+func (task *Task) requiresAnyCredentialSpecResource() bool {
 	return false
 }
 
@@ -115,4 +115,8 @@ func (task *Task) BuildCNIConfigAwsvpc(includeIPAMConfig bool, cniConfig *ecscni
 // BuildCNIConfigBridgeMode builds a list of CNI network configurations for a task in docker bridge mode.
 func (task *Task) BuildCNIConfigBridgeMode(cniConfig *ecscni.Config, containerName string) (*ecscni.Config, error) {
 	return nil, errors.New("unsupported platform")
+}
+
+func (task *Task) SetGMSAExecutionRoleCredentials(roleCredentials credentials.IAMRoleCredentials) error {
+	return nil
 }

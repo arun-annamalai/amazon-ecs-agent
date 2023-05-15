@@ -1066,7 +1066,7 @@ func TestRequiresCredentialSpec(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedOutput, tc.container.RequiresCredentialSpec())
+			assert.Equal(t, tc.expectedOutput, tc.container.RequiresAnyCredentialSpec())
 		})
 	}
 }

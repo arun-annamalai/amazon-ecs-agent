@@ -20,6 +20,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/aws/amazon-ecs-agent/agent/taskresource/credentialspec"
+
 	"github.com/aws/amazon-ecs-agent/agent/ecscni"
 	"github.com/aws/amazon-ecs-agent/agent/logger"
 	"github.com/aws/amazon-ecs-agent/agent/logger/field"
@@ -263,4 +265,12 @@ func (task *Task) BuildCNIConfigAwsvpc(includeIPAMConfig bool, cniConfig *ecscni
 // BuildCNIConfigBridgeMode builds a list of CNI network configurations for a task in docker bridge mode.
 func (task *Task) BuildCNIConfigBridgeMode(cniConfig *ecscni.Config, containerName string) (*ecscni.Config, error) {
 	return nil, errors.New("unsupported platform")
+}
+
+func (task *Task) SetGMSAExecutionRoleCredentials(roleCredentials credentials.IAMRoleCredentials) error {
+	err := credentialspec.SetTaskExecutionCredentialsRegKeys(roleCredentials, task.Arn)
+	if err != nil {
+		return err
+	}
+	return nil
 }

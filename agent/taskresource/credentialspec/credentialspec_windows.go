@@ -65,7 +65,7 @@ var (
 	readCredentialSpecImpl                    = readCredentialSpec
 	writeCredentialSpecImpl                   = writeCredentialSpec
 	readWriteDomainlessCredentialSpecImpl     = readWriteDomainlessCredentialSpec
-	setTaskExecutionCredentialsRegKeysImpl    = setTaskExecutionCredentialsRegKeys
+	setTaskExecutionCredentialsRegKeysImpl    = SetTaskExecutionCredentialsRegKeys
 	handleNonFileDomainlessGMSACredSpecImpl   = handleNonFileDomainlessGMSACredSpec
 	deleteTaskExecutionCredentialsRegKeysImpl = deleteTaskExecutionCredentialsRegKeys
 )
@@ -484,7 +484,7 @@ func (cs *CredentialSpecResource) UnmarshallPlatformSpecificFields(credentialSpe
 	return
 }
 
-func setTaskExecutionCredentialsRegKeys(taskCredentials credentials.IAMRoleCredentials, taskArn string) error {
+func SetTaskExecutionCredentialsRegKeys(taskCredentials credentials.IAMRoleCredentials, taskArn string) error {
 	if taskCredentials == (credentials.IAMRoleCredentials{}) {
 		err := errors.New("Unable to find execution role credentials while setting registry key for task " + taskArn)
 		return err

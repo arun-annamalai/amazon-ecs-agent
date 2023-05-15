@@ -4637,7 +4637,7 @@ func TestTaskWithoutServiceConnectAttachment(t *testing.T) {
 	assert.Nil(t, task.ServiceConnectConfig, "Should be no service connect config")
 }
 
-func TestRequiresCredentialSpecResource(t *testing.T) {
+func TestRequiresAnyCredentialSpecResource(t *testing.T) {
 	container1 := &apicontainer.Container{}
 	task1 := &Task{
 		Arn:        "test",
@@ -4671,7 +4671,7 @@ func TestRequiresCredentialSpecResource(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expectedOutput, tc.task.requiresCredentialSpecResource())
+			assert.Equal(t, tc.expectedOutput, tc.task.requiresAnyCredentialSpecResource())
 		})
 	}
 

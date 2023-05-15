@@ -372,3 +372,7 @@ func (task *Task) BuildCNIConfigBridgeMode(cniConfig *ecscni.Config, containerNa
 	cniConfig.ContainerNetNS = fmt.Sprintf(ecscni.NetnsFormat, cniConfig.ContainerPID)
 	return cniConfig, nil
 }
+
+func (task *Task) SetGMSAExecutionRoleCredentials(roleCredentials credentials.IAMRoleCredentials) error {
+	return nil
+}
