@@ -17,11 +17,13 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
+	apicontainer "github.com/aws/amazon-ecs-agent/agent/api/container"
 	apitask "github.com/aws/amazon-ecs-agent/agent/api/task"
 	mock_engine "github.com/aws/amazon-ecs-agent/agent/engine/mocks"
 	mock_wsclient "github.com/aws/amazon-ecs-agent/agent/wsclient/mock"
@@ -30,6 +32,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -233,6 +236,67 @@ func TestCredentialsMessageNotAckedWhenTaskNotFound(t *testing.T) {
 	cancel()
 }
 
+// TestCredentialsMessageNotAckedWhenDomainlessGMSACredentialsNotSet tests if credential messages
+// are not acked when the task arn in the message is not found in the task
+// engine
+func TestCredentialsMessageNotAckedWhenDomainlessGMSACredentialsError(t *testing.T) {
+	testCases := []struct {
+		name                                                   string
+		taskArn                                                string
+		containers                                             []*apicontainer.Container
+		setDomainlessGMSATaskExecutionRoleCredentialsImplError error
+		expectedErrorString                                    string
+	}{
+		{
+			name:       "ErrDomainlessTask",
+			taskArn:    taskArn,
+			containers: []*apicontainer.Container{{CredentialSpecs: []string{"credentialspecdomainless:file://gmsa_gmsa-acct.json"}}},
+			setDomainlessGMSATaskExecutionRoleCredentialsImplError: errors.New("mock setDomainlessGMSATaskExecutionRoleCredentialsImplError"),
+			expectedErrorString: "unable to SetDomainlessGMSATaskExecutionRoleCredentials mock setDomainlessGMSATaskExecutionRoleCredentialsImplError",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			credentialsManager := credentials.NewManager()
+
+			taskEngine := mock_engine.NewMockTaskEngine(ctrl)
+			// Return a task from the engine for GetTaskByArn
+			taskEngine.EXPECT().GetTaskByArn(tc.taskArn).Return(&apitask.Task{Arn: tc.taskArn, Containers: tc.containers}, true)
+
+			setDomainlessGMSATaskExecutionRoleCredentialsImpl = func(iamRoleCredentials credentials.IAMRoleCredentials, taskArnInput string) error {
+				if tc.taskArn != taskArnInput {
+					return errors.New(fmt.Sprintf("Expected taskArnInput to be %s, instead got %s", tc.taskArn, taskArnInput))
+				}
+
+				return tc.setDomainlessGMSATaskExecutionRoleCredentialsImplError
+			}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			handler := newRefreshCredentialsHandler(ctx, cluster, containerInstance, nil, credentialsManager, taskEngine)
+
+			// Start a goroutine to listen for acks. Cancelling the context stops the goroutine
+			go func() {
+				for {
+					select {
+					// We never expect the message to be acked
+					case <-handler.ackRequest:
+						t.Fatalf("Received ack when none expected")
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
+
+			err := handler.handleSingleMessage(message)
+			assert.EqualError(t, err, tc.expectedErrorString)
+			cancel()
+		})
+	}
+}
+
 // TestHandleRefreshMessageAckedWhenCredentialsUpdated tests that a credential message
 // is ackd when the credentials are updated successfully
 func TestHandleRefreshMessageAckedWhenCredentialsUpdated(t *testing.T) {
@@ -277,6 +341,105 @@ func TestHandleRefreshMessageAckedWhenCredentialsUpdated(t *testing.T) {
 	}
 	if !reflect.DeepEqual(creds, expectedCredentials) {
 		t.Errorf("Mismatch between expected credentials and credentials for task. Expected: %v, got: %v", expectedCredentials, creds)
+	}
+}
+
+// TestHandleRefreshMessageAckedWhenCredentialsUpdatedDomainlessGMSA tests that a credential message
+// is ackd when the credentials are updated successfully and domainless gMSA plugin task execution role is set properly
+func TestHandleRefreshMessageAckedWhenCredentialsUpdatedDomainlessGMSA(t *testing.T) {
+	testCases := []struct {
+		name                                                   string
+		taskArn                                                string
+		containers                                             []*apicontainer.Container
+		setDomainlessGMSATaskExecutionRoleCredentialsImplError error
+		expectedErrorString                                    string
+	}{
+		{
+			name:       "HappyCaseDomainlessTaskSucceeds",
+			taskArn:    taskArn,
+			containers: []*apicontainer.Container{{CredentialSpecs: []string{"credentialspecdomainless:file://gmsa_gmsa-acct.json"}}},
+			setDomainlessGMSATaskExecutionRoleCredentialsImplError: nil,
+			expectedErrorString: "",
+		},
+		{
+			name:       "HappyCaseDomainJoinedTaskSucceeds",
+			taskArn:    taskArn,
+			containers: []*apicontainer.Container{{CredentialSpecs: []string{"credentialspec:file://gmsa_gmsa-acct.json"}}},
+			setDomainlessGMSATaskExecutionRoleCredentialsImplError: nil,
+		},
+		{
+			name:       "HappyCaseDomainJoinedTaskSucceeds2",
+			taskArn:    taskArn,
+			containers: []*apicontainer.Container{{DockerConfig: apicontainer.DockerConfig{HostConfig: aws.String("{\"SecurityOpt\": [\"credentialspec:file://gmsa_gmsa-acct.json\"]}")}}},
+			setDomainlessGMSATaskExecutionRoleCredentialsImplError: nil,
+		},
+		{
+			name:       "ErrCaseDomainJoinedTaskSucceeds",
+			taskArn:    taskArn,
+			containers: []*apicontainer.Container{{CredentialSpecs: []string{"credentialspec:file://gmsa_gmsa-acct.json"}}},
+			setDomainlessGMSATaskExecutionRoleCredentialsImplError: errors.New("mock setDomainlessGMSATaskExecutionRoleCredentialsImplError"),
+		},
+		{
+			name:       "ErrCaseDomainJoinedTaskSucceeds2",
+			taskArn:    taskArn,
+			containers: []*apicontainer.Container{{DockerConfig: apicontainer.DockerConfig{HostConfig: aws.String("{\"SecurityOpt\": [\"credentialspec:file://gmsa_gmsa-acct.json\"]}")}}},
+			setDomainlessGMSATaskExecutionRoleCredentialsImplError: errors.New("mock setDomainlessGMSATaskExecutionRoleCredentialsImplError"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			credentialsManager := credentials.NewManager()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			var ackRequested *ecsacs.IAMRoleCredentialsAckRequest
+
+			mockWsClient := mock_wsclient.NewMockClientServer(ctrl)
+			mockWsClient.EXPECT().MakeRequest(gomock.Any()).Do(func(ackRequest *ecsacs.IAMRoleCredentialsAckRequest) {
+				ackRequested = ackRequest
+				cancel()
+			}).Times(1)
+
+			taskEngine := mock_engine.NewMockTaskEngine(ctrl)
+			// Return a task from the engine for GetTaskByArn
+			taskEngine.EXPECT().GetTaskByArn(tc.taskArn).Return(&apitask.Task{Arn: tc.taskArn, Containers: tc.containers}, true)
+
+			setDomainlessGMSATaskExecutionRoleCredentialsImpl = func(iamRoleCredentials credentials.IAMRoleCredentials, taskArnInput string) error {
+				if tc.taskArn != taskArnInput {
+					return errors.New(fmt.Sprintf("Expected taskArnInput to be %s, instead got %s", tc.taskArn, taskArnInput))
+				}
+
+				return tc.setDomainlessGMSATaskExecutionRoleCredentialsImplError
+			}
+
+			handler := newRefreshCredentialsHandler(ctx, clusterName, containerInstanceArn, mockWsClient, credentialsManager, taskEngine)
+			go handler.sendAcks()
+
+			// test adding a credentials message without the MessageId field
+			err := handler.handleSingleMessage(message)
+
+			if err != nil {
+				t.Errorf("Error updating credentials: %v", err)
+			}
+
+			// Wait till we get an ack from the ackBuffer
+			select {
+			case <-ctx.Done():
+			}
+
+			if !reflect.DeepEqual(ackRequested, expectedAck) {
+				t.Errorf("Message between expected and requested ack. Expected: %v, Requested: %v", expectedAck, ackRequested)
+			}
+
+			creds, exist := credentialsManager.GetTaskCredentials(credentialsId)
+			if !exist {
+				t.Errorf("Expected credentials to exist for the task")
+			}
+			if !reflect.DeepEqual(creds, expectedCredentials) {
+				t.Errorf("Mismatch between expected credentials and credentials for task. Expected: %v, got: %v", expectedCredentials, creds)
+			}
+		})
 	}
 }
 
